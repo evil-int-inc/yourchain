@@ -1,4 +1,4 @@
-import { getDirectURL } from "@/services/storage";
+import { storageService } from "@/services/storage";
 import type { Video } from "@/types";
 import {
   formatCount,
@@ -40,7 +40,8 @@ export function VideoCard({
       return;
     }
     setThumbnailUrl(null);
-    void getDirectURL(video.thumbnailAssetId)
+    void storageService
+      .getDirectURL(video.thumbnailAssetId)
       .then((url) => {
         if (!cancelled) setThumbnailUrl(url);
       })

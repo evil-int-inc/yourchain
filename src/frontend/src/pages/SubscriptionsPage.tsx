@@ -11,7 +11,7 @@ import {
   type VideoPageFetcher,
   useInfiniteVideos,
 } from "@/hooks/useInfiniteVideos";
-import { getSubscriptionFeed } from "@/services/videos";
+import { videoService } from "@/services/videos";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { LogIn, Users } from "lucide-react";
 import { useCallback } from "react";
@@ -57,7 +57,7 @@ export function SubscriptionsPage() {
   const fetcher = useCallback<VideoPageFetcher>(
     (cursor, limit) => {
       if (!actor) return Promise.resolve({ items: [], nextCursor: undefined });
-      return getSubscriptionFeed(actor, cursor, limit);
+      return videoService.getSubscriptionFeed(actor, cursor, limit);
     },
     [actor],
   );

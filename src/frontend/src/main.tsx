@@ -2,6 +2,7 @@ import { InternetIdentityProvider } from "@caffeineai/core-infrastructure";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { themeService } from "./services/themeService";
 import "./index.css";
 
 BigInt.prototype.toJSON = function () {
@@ -13,6 +14,9 @@ declare global {
     toJSON(): string;
   }
 }
+
+// Apply the saved/system DaisyUI theme before the first paint.
+themeService.initialize();
 
 const queryClient = new QueryClient();
 

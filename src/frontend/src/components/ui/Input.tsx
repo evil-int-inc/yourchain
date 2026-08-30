@@ -26,7 +26,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
         {label ? (
           <label
             htmlFor={inputId}
-            className="mb-1.5 block text-sm font-medium text-foreground"
+            className="mb-1.5 block text-sm font-medium text-base-content"
           >
             {label}
           </label>
@@ -40,8 +40,8 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             aria-invalid={error ? true : undefined}
             aria-describedby={error ? errorId : hint ? hintId : undefined}
             className={cn(
-              "input input-bordered w-full bg-card text-foreground transition-smooth",
-              "focus:outline-none focus:ring-2 focus:ring-ring",
+              "input input-bordered w-full bg-base-100 text-base-content transition-smooth",
+              "focus:outline-none focus:ring-2 focus:ring-primary",
               error && "input-error",
               rightElement && "pr-10",
               className,
@@ -49,18 +49,18 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {rightElement ? (
-            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-muted-foreground">
+            <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-base-content/60">
               {rightElement}
             </span>
           ) : null}
         </div>
 
         {error ? (
-          <p id={errorId} className="mt-1.5 text-sm text-destructive">
+          <p id={errorId} className="mt-1.5 text-sm text-error">
             {error}
           </p>
         ) : hint ? (
-          <p id={hintId} className="mt-1.5 text-sm text-muted-foreground">
+          <p id={hintId} className="mt-1.5 text-sm text-base-content/60">
             {hint}
           </p>
         ) : null}

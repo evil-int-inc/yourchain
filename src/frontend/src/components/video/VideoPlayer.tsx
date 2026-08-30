@@ -1,4 +1,4 @@
-import { getDirectURL } from "@/services/storage";
+import { storageService } from "@/services/storage";
 import type { Video } from "@/types";
 import { useEffect, useState } from "react";
 
@@ -20,7 +20,8 @@ export function VideoPlayer({ video, poster }: VideoPlayerProps) {
   useEffect(() => {
     let cancelled = false;
     setSrc(null);
-    void getDirectURL(video.videoAssetId)
+    void storageService
+      .getDirectURL(video.videoAssetId)
       .then((url) => {
         if (!cancelled) setSrc(url);
       })
@@ -43,7 +44,8 @@ export function VideoPlayer({ video, poster }: VideoPlayerProps) {
       return;
     }
     setPosterUrl(null);
-    void getDirectURL(video.thumbnailAssetId)
+    void storageService
+      .getDirectURL(video.thumbnailAssetId)
       .then((url) => {
         if (!cancelled) setPosterUrl(url);
       })

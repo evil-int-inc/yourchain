@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { config } from "@/config";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
-import { getChannelByUsername, saveProfile } from "@/services/users";
+import { userService } from "@/services/users";
 import { formatDate, timestampToDate } from "@/utils/format";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -76,7 +76,7 @@ export function ProfilePage() {
     setUsernameChecking(true);
     const handle = window.setTimeout(async () => {
       try {
-        const found = await getChannelByUsername(actor, trimmed);
+        const found = await userService.getChannelByUsername(actor, trimmed);
         const isOwn =
           !!profile && !!found && found.id.toString() === profile.id.toString();
         setUsernameTaken(!!found && !isOwn);
@@ -92,7 +92,7 @@ export function ProfilePage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Backend is not ready");
-      return saveProfile(actor, {
+      return userService.saveProfile(actor, {
         displayName: displayName.trim(),
         username: username.trim(),
         avatar: avatar.trim() || null,

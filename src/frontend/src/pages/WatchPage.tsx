@@ -6,8 +6,8 @@ import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { VideoPlayer } from "@/components/video/VideoPlayer";
 import { useAuth } from "@/services/hooks";
-import { getChannel } from "@/services/users";
-import { getVideo } from "@/services/videos";
+import { userService } from "@/services/users";
+import { videoService } from "@/services/videos";
 import { type User, type Video, VideoStatus } from "@/types";
 import { formatBytes, timeAgo, timestampToDate } from "@/utils/format";
 import { useActor } from "@caffeineai/core-infrastructure";
@@ -23,7 +23,7 @@ function useGetVideo(videoId: bigint) {
     queryKey: ["video", videoId.toString()],
     queryFn: async () => {
       if (!actor) return null;
-      return getVideo(actor, videoId);
+      return videoService.getVideo(actor, videoId);
     },
     enabled: !!actor && !isFetching,
   });
@@ -36,7 +36,7 @@ function useGetChannel(ownerId: Principal | null) {
     queryKey: ["channel", ownerId?.toString() ?? "none"],
     queryFn: async () => {
       if (!actor || !ownerId) return null;
-      return getChannel(actor, ownerId);
+      return userService.getChannel(actor, ownerId);
     },
     enabled: !!actor && !isFetching && !!ownerId,
   });

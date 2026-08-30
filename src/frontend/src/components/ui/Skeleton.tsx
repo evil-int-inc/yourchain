@@ -15,13 +15,7 @@ export function Skeleton({
     <div
       data-ocid="skeleton"
       aria-hidden="true"
-      className={cn(
-        "animate-shimmer rounded-md bg-muted",
-        "bg-[linear-gradient(110deg,oklch(var(--muted))_8%,oklch(var(--card))_18%,oklch(var(--muted))_33%)]",
-        "bg-[length:200%_100%]",
-        circle && "rounded-full",
-        className,
-      )}
+      className={cn("skeleton rounded-md", circle && "rounded-full", className)}
       {...props}
     />
   );

@@ -7,7 +7,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { VideoGrid } from "@/components/video/VideoGrid";
 import { config } from "@/config";
 import { useInfiniteVideos } from "@/hooks/useInfiniteVideos";
-import { getFeed } from "@/services/videos";
+import { videoService } from "@/services/videos";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useSearch } from "@tanstack/react-router";
 import { Clapperboard } from "lucide-react";
@@ -53,7 +53,7 @@ export function FeedPage() {
   const fetcher = useCallback(
     (cursor: bigint, limit: bigint) => {
       if (!actor) return Promise.resolve({ items: [] });
-      return getFeed(actor, cursor, limit);
+      return videoService.getFeed(actor, cursor, limit);
     },
     [actor],
   );
@@ -79,7 +79,7 @@ export function FeedPage() {
   const initialLoading = isLoading && items.length === 0 && !error;
 
   return (
-    <section data-ocid="feed_page" className="flex flex-col gap-6">
+    <section data-ocid="feed_page" className="flex flex-col gap-6 p-4 sm:p-6">
       <header className="flex flex-col gap-1">
         <h1 className="font-display text-2xl font-bold text-foreground">
           {query ? "Search results" : "Feed"}

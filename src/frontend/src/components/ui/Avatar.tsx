@@ -41,7 +41,7 @@ export const Avatar = forwardRef<HTMLSpanElement, AvatarProps>(
         ref={ref}
         data-ocid="avatar"
         className={cn(
-          "inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-muted text-muted-foreground ring-1 ring-border",
+          "avatar inline-flex shrink-0 items-center justify-center overflow-hidden rounded-full bg-base-300 text-base-content/60 ring-1 ring-base-300",
           sizeClasses[size],
           className,
         )}

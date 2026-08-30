@@ -1,10 +1,5 @@
 import { createActor } from "@/backend";
-import {
-  getSubscriberCount,
-  isSubscribed,
-  subscribe,
-  unsubscribe,
-} from "@/services/subscriptions";
+import { subscriptionService } from "@/services/subscriptions";
 import type { UserId } from "@/types";
 import { useActor, useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +19,7 @@ export function useSubscription(channelId: UserId) {
     queryKey: ["subscription", "state", channelId.toString()],
     queryFn: async () => {
       if (!actor) return false;
-      return isSubscribed(actor, channelId);
+      return subscriptionService.isSubscribed(actor, channelId);
     },
     enabled: !!actor && !isFetching && isAuthenticated,
   });
@@ -33,7 +28,7 @@ export function useSubscription(channelId: UserId) {
     queryKey: ["subscription", "count", channelId.toString()],
     queryFn: async () => {
       if (!actor) return 0n;
-      return getSubscriberCount(actor, channelId);
+      return subscriptionService.getSubscriberCount(actor, channelId);
     },
     enabled: !!actor && !isFetching,
   });
@@ -41,7 +36,7 @@ export function useSubscription(channelId: UserId) {
   const subscribeMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Backend is not ready");
-      await subscribe(actor, channelId);
+      await subscriptionService.subscribe(actor, channelId);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({
@@ -53,7 +48,7 @@ export function useSubscription(channelId: UserId) {
   const unsubscribeMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Backend is not ready");
-      await unsubscribe(actor, channelId);
+      await subscriptionService.unsubscribe(actor, channelId);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({

@@ -1,5 +1,5 @@
 import { createActor } from "@/backend";
-import { getCallerProfile } from "@/services/auth";
+import { authService } from "@/services/auth";
 import { useActor, useInternetIdentity } from "@caffeineai/core-infrastructure";
 import { useQuery } from "@tanstack/react-query";
 
@@ -27,7 +27,7 @@ export function useAuth() {
     queryKey: ["profile"],
     queryFn: async () => {
       if (!actor) return null;
-      return getCallerProfile(actor);
+      return authService.getCallerProfile(actor);
     },
     enabled: !!actor && !isFetching && isAuthenticated,
   });

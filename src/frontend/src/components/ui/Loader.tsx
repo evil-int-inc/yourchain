@@ -1,5 +1,4 @@
 import { cn } from "@/lib/utils";
-import { Loader2 } from "lucide-react";
 
 export type LoaderSize = "sm" | "md" | "lg";
 
@@ -10,9 +9,9 @@ export interface LoaderProps {
 }
 
 const sizeClasses: Record<LoaderSize, string> = {
-  sm: "size-4",
-  md: "size-6",
-  lg: "size-8",
+  sm: "loading-sm",
+  md: "loading-md",
+  lg: "loading-lg",
 };
 
 export function Loader({ size = "md", label, className }: LoaderProps) {
@@ -20,10 +19,13 @@ export function Loader({ size = "md", label, className }: LoaderProps) {
     <output
       data-ocid="loading_state"
       aria-live="polite"
-      className={cn("flex items-center gap-2 text-muted-foreground", className)}
+      className={cn("flex items-center gap-2 text-base-content/60", className)}
     >
-      <Loader2
-        className={cn("animate-spin text-primary", sizeClasses[size])}
+      <span
+        className={cn(
+          "loading loading-spinner text-primary",
+          sizeClasses[size],
+        )}
         aria-hidden="true"
       />
       {label ? <span className="text-sm">{label}</span> : null}

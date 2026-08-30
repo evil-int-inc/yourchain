@@ -35,7 +35,9 @@ vi.mock("@tanstack/react-router", () => ({
 
 // Mock the storage service so no network/asset calls happen.
 vi.mock("@/services/storage", () => ({
-  getDirectURL: vi.fn(async () => "https://example.com/asset"),
+  storageService: {
+    getDirectURL: vi.fn(async () => "https://example.com/asset"),
+  },
 }));
 
 // Mock react-query's useQuery to control the video and channel data.

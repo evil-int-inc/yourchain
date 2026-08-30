@@ -56,3 +56,6 @@ export const config = {
 } as const;
 
 export type Config = typeof config;
+
+/** Persisted DaisyUI theme preference used before React mounts. */
+export const THEME_STORAGE_KEY = "yourchain-theme";

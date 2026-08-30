@@ -1,5 +1,5 @@
 import type { Backend } from "@/backend";
-import { uploadVideo } from "@/services/upload";
+import { uploadService } from "@/services/upload";
 import { UploadKind, UploadStatus, VideoStatus } from "@/types";
 import type { UploadSession, Video } from "@/types";
 import { describe, expect, it, vi } from "vitest";
@@ -74,7 +74,7 @@ describe("uploadVideo", () => {
     } as unknown as Backend;
 
     const file = makeFile(100);
-    const result = await uploadVideo(
+    const result = await uploadService.uploadVideo(
       actor,
       file,
       "My clip",
@@ -117,7 +117,7 @@ describe("uploadVideo", () => {
     // 1 GB + 1 byte.
     const oversized = makeFile(1_073_741_825);
     await expect(
-      uploadVideo(actor, oversized, "Too big", null, null),
+      uploadService.uploadVideo(actor, oversized, "Too big", null, null),
     ).rejects.toThrow(/exceeds the maximum size/);
 
     // No session should have been created for an oversized file.
@@ -136,7 +136,14 @@ describe("uploadVideo", () => {
     } as unknown as Backend;
 
     const onProgress = vi.fn();
-    await uploadVideo(actor, makeFile(100), "My clip", null, null, onProgress);
+    await uploadService.uploadVideo(
+      actor,
+      makeFile(100),
+      "My clip",
+      null,
+      null,
+      onProgress,
+    );
 
     expect(onProgress).toHaveBeenCalled();
     expect(onProgress).toHaveBeenLastCalledWith(100);

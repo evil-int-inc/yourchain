@@ -1,10 +1,6 @@
 import { createActor } from "@/backend";
 import { config } from "@/config";
-import {
-  getNotifications,
-  getUnreadNotificationCount,
-  markNotificationsRead,
-} from "@/services/notifications";
+import { notificationService } from "@/services/notifications";
 import type { Notification, NotificationPage } from "@/types";
 import { toNotificationPage } from "@/types";
 import { useActor } from "@caffeineai/core-infrastructure";
@@ -24,7 +20,7 @@ export function useNotifications() {
     queryKey: ["notifications", "unread"],
     queryFn: async () => {
       if (!actor) return 0n;
-      return getUnreadNotificationCount(actor);
+      return notificationService.getUnreadNotificationCount(actor);
     },
     enabled: !!actor && !isFetching,
   });
@@ -33,7 +29,7 @@ export function useNotifications() {
     queryKey: ["notifications", "list"],
     queryFn: async () => {
       if (!actor) return { items: [] };
-      const page = await getNotifications(
+      const page = await notificationService.getNotifications(
         actor,
         0n,
         BigInt(config.notificationPageSize),
@@ -46,7 +42,7 @@ export function useNotifications() {
   const markAllRead = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Backend is not ready");
-      await markNotificationsRead(actor);
+      await notificationService.markNotificationsRead(actor);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["notifications"] });

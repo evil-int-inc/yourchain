@@ -10,9 +10,9 @@ import { VideoGrid } from "@/components/video/VideoGrid";
 import { config } from "@/config";
 import { useAuth } from "@/hooks/useAuth";
 import { useInfiniteVideos } from "@/hooks/useInfiniteVideos";
-import { getDirectURL } from "@/services/storage";
-import { getChannel } from "@/services/users";
-import { getChannelVideos } from "@/services/videos";
+import { storageService } from "@/services/storage";
+import { userService } from "@/services/users";
+import { videoService } from "@/services/videos";
 import { formatDate, timestampToDate } from "@/utils/format";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { Principal } from "@icp-sdk/core/principal";
@@ -87,7 +87,7 @@ export function ChannelPage() {
     queryKey: ["channel", userId],
     queryFn: async () => {
       if (!actor) return null;
-      return getChannel(actor, channelPrincipal);
+      return userService.getChannel(actor, channelPrincipal);
     },
     enabled: !!actor && !isFetching,
   });
@@ -103,7 +103,8 @@ export function ChannelPage() {
       return;
     }
     setAvatarUrl(null);
-    void getDirectURL(channel.avatar)
+    void storageService
+      .getDirectURL(channel.avatar)
       .then((url) => {
         if (!cancelled) setAvatarUrl(url);
       })
@@ -118,7 +119,12 @@ export function ChannelPage() {
   const fetcher = useCallback(
     (cursor: bigint, limit: bigint) => {
       if (!actor) return Promise.resolve({ items: [] });
-      return getChannelVideos(actor, channelPrincipal, cursor, limit);
+      return videoService.getChannelVideos(
+        actor,
+        channelPrincipal,
+        cursor,
+        limit,
+      );
     },
     [actor, channelPrincipal],
   );
@@ -134,7 +140,10 @@ export function ChannelPage() {
   const memberSince = timestampToDate(channel?.createdAt ?? 0n);
 
   return (
-    <section data-ocid="channel_page" className="flex flex-col gap-6">
+    <section
+      data-ocid="channel_page"
+      className="flex flex-col gap-6 p-4 sm:p-6"
+    >
       {channelQuery.isLoading ? (
         <ChannelHeaderSkeleton />
       ) : channelQuery.isError || !channel ? (

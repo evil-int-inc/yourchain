@@ -1,5 +1,5 @@
 import { createActor } from "@/backend";
-import { uploadVideo } from "@/services/upload";
+import { uploadService } from "@/services/upload";
 import type { Video } from "@/types";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useCallback, useRef, useState } from "react";
@@ -41,7 +41,7 @@ export function useVideoUpload() {
       setProgress(0);
 
       try {
-        const video = await uploadVideo(
+        const video = await uploadService.uploadVideo(
           actor,
           input.file,
           input.title,

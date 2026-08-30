@@ -1,6 +1,6 @@
 import { createActor } from "@/backend";
 import { config } from "@/config";
-import { getFeed } from "@/services/videos";
+import { videoService } from "@/services/videos";
 import type { Page, Video } from "@/types";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useQuery } from "@tanstack/react-query";
@@ -17,7 +17,7 @@ export function useFeed() {
     queryKey: ["feed"],
     queryFn: async () => {
       if (!actor) return { items: [] };
-      return getFeed(actor, 0n, BigInt(config.feedPageSize));
+      return videoService.getFeed(actor, 0n, BigInt(config.feedPageSize));
     },
     enabled: !!actor && !isFetching,
   });

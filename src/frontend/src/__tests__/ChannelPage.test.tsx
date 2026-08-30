@@ -32,7 +32,9 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 
 vi.mock("@/services/storage", () => ({
-  getDirectURL: vi.fn(async () => "https://example.com/asset"),
+  storageService: {
+    getDirectURL: vi.fn(async () => "https://example.com/asset"),
+  },
 }));
 
 const useQueryMock = vi.fn();

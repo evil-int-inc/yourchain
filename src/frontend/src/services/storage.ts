@@ -10,24 +10,25 @@ import { HttpAgent, type Identity } from "@icp-sdk/core/agent";
  * in) and the cached deployment config, then asks the object-storage client
  * for the direct gateway URL.
  */
-export async function getDirectURL(
-  assetId: string,
-  identity?: Identity,
-): Promise<string> {
-  const config = await loadConfig();
+export class StorageService {
+  async getDirectURL(assetId: string, identity?: Identity): Promise<string> {
+    const config = await loadConfig();
 
-  const agent = new HttpAgent({
-    identity,
-    host: config.backend_host,
-  });
+    const agent = new HttpAgent({
+      identity,
+      host: config.backend_host,
+    });
 
-  const client = new StorageClient(
-    config.bucket_name,
-    config.storage_gateway_url,
-    config.backend_canister_id,
-    config.project_id,
-    agent,
-  );
+    const client = new StorageClient(
+      config.bucket_name,
+      config.storage_gateway_url,
+      config.backend_canister_id,
+      config.project_id,
+      agent,
+    );
 
-  return client.getDirectURL(assetId);
+    return client.getDirectURL(assetId);
+  }
 }
+
+export const storageService = new StorageService();

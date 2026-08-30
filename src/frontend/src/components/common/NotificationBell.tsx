@@ -49,7 +49,7 @@ export function NotificationBell() {
             ? `Notifications, ${count} unread`
             : "Notifications, no unread"
         }
-        className="btn btn-ghost btn-circle relative"
+        className="btn btn-ghost btn-circle btn-sm relative"
       >
         <Bell className="size-5" aria-hidden="true" />
         {hasUnread ? (
@@ -64,7 +64,7 @@ export function NotificationBell() {
 
       <div
         data-ocid="notification_dropdown"
-        className="dropdown-content z-50 mt-2 w-80 rounded-box border border-border bg-popover shadow-elevated"
+        className="dropdown-content z-50 mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-box border border-border bg-popover shadow-elevated"
       >
         <div className="flex items-center justify-between border-b border-border px-4 py-3">
           <h2 className="font-display text-sm font-semibold text-foreground">
