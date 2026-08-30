@@ -34322,8 +34322,8 @@ const config = {
   notificationPageSize: 20,
   /** Number of channel videos requested per page. */
   channelPageSize: 12,
-  /** Chunk size used by the upload orchestration (4 MB). */
-  uploadChunkSize: 4194304,
+  /** Maximum client chunk size, matching the backend upload contract (1 MB). */
+  uploadChunkSize: 1e6,
   /** Maximum upload retries per chunk before failing. */
   maxUploadRetries: 3,
   /** Backoff base (ms) between upload retries. */
@@ -44967,19 +44967,20 @@ class UploadService {
   /**
    * Streams a file into an upload session, reports progress, and verifies it.
    */
-  async streamFile(actor, sessionId, file, onProgress) {
-    const chunkSize = config.uploadChunkSize;
+  async streamFile(actor, session, file, onProgress) {
+    const advertisedChunkSize = Number(session.chunkSize);
+    const chunkSize = Number.isSafeInteger(advertisedChunkSize) && advertisedChunkSize > 0 ? Math.min(advertisedChunkSize, config.uploadChunkSize) : config.uploadChunkSize;
     const totalChunks = Math.ceil(file.size / chunkSize);
     let uploadedBytes = 0;
     for (let index2 = 0; index2 < totalChunks; index2 += 1) {
       const start = index2 * chunkSize;
       const end = Math.min(start + chunkSize, file.size);
       const chunk = new Uint8Array(await file.slice(start, end).arrayBuffer());
-      await this.uploadChunkWithRetry(actor, sessionId, BigInt(index2), chunk);
+      await this.uploadChunkWithRetry(actor, session.id, BigInt(index2), chunk);
       uploadedBytes += chunk.length;
       onProgress == null ? void 0 : onProgress(Math.round(uploadedBytes / file.size * 100));
     }
-    await this.verifyUpload(actor, sessionId);
+    await this.verifyUpload(actor, session.id);
   }
   /** Uploads an optional thumbnail and returns its stored asset id. */
   async uploadThumbnail(actor, thumbnail) {
@@ -44995,7 +44996,7 @@ class UploadService {
       BigInt(thumbnail.size),
       thumbnail.type
     );
-    await this.streamFile(actor, session.id, thumbnail);
+    await this.streamFile(actor, session, thumbnail);
     return session.assetId;
   }
   /** Orchestrates a full chunked video upload and publishes the result. */
@@ -45011,7 +45012,7 @@ class UploadService {
       BigInt(file.size),
       file.type
     );
-    await this.streamFile(actor, session.id, file, onProgress);
+    await this.streamFile(actor, session, file, onProgress);
     const thumbnailAssetId = await this.uploadThumbnail(actor, thumbnail);
     const draft = await this.finalizeMedia(
       actor,
