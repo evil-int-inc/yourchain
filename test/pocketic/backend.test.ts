@@ -1,4 +1,4 @@
-import { createIdentity, PocketIc } from "@dfinity/pic";
+import { type Actor, createIdentity, PocketIc } from "@dfinity/pic";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
 import { idlFactory } from "../../src/frontend/src/declarations/backend.did.js";
@@ -15,16 +15,26 @@ const alice = createIdentity("alice").getPrincipal();
 const bob = createIdentity("bob").getPrincipal();
 
 let pic: PocketIc | undefined;
-let actor: _SERVICE;
+let actor: Actor<_SERVICE>;
 
-// Runs the full upload pipeline as `owner` and returns the published video.
-// Each test seeds its own data so no test depends on another's side effects.
-async function publishVideo(owner: typeof alice, title: string, size: number) {
+// Creates an immutable storage reference and publishes the video as `owner`.
+async function publishVideo(
+  owner: typeof alice,
+  title: string,
+  size: number,
+  isPrivate = false,
+) {
   actor.setPrincipal(owner);
-  const session = await actor.createUploadSession({ video: null }, BigInt(size), "video/mp4");
-  await actor.uploadChunk(session.id, 0n, new Uint8Array(size));
-  await actor.verifyUpload(session.id);
-  const draft = await actor.finalizeMedia(session.id, title, [], []);
+  const draft = await actor.createVideo(
+    title,
+    [],
+    new Uint8Array([1, 2, 3]),
+    [],
+    "clip.mp4",
+    "video/mp4",
+    BigInt(size),
+    isPrivate,
+  );
   return actor.publishVideo(draft.id);
 }
 
@@ -55,24 +65,24 @@ describe("YourChain backend", () => {
     expect(page.nextCursor).toEqual([]);
   });
 
-  it("runs the full upload flow and surfaces the published video in feeds", async () => {
+  it("creates a stored video reference and surfaces the public video in feeds", async () => {
     actor.setPrincipal(alice);
 
-    // createUploadSession → uploadChunk → verifyUpload → finalizeMedia → publishVideo
-    const session = await actor.createUploadSession({ video: null }, 100n, "video/mp4");
-    expect(session.status).toEqual({ active: null });
-    expect(session.totalSize).toBe(100n);
-    expect(session.ownerId).toEqual(alice);
-
-    const received = await actor.uploadChunk(session.id, 0n, new Uint8Array(100));
-    expect(received).toBe(100n);
-
-    await actor.verifyUpload(session.id);
-
-    const draft = await actor.finalizeMedia(session.id, "My clip", ["A description"], []);
+    const draft = await actor.createVideo(
+      "My clip",
+      ["A description"],
+      new Uint8Array([4, 5, 6]),
+      [],
+      "clip.mp4",
+      "video/mp4",
+      100n,
+      false,
+    );
     expect(draft.status).toEqual({ draft: null });
     expect(draft.title).toBe("My clip");
     expect(draft.ownerId).toEqual(alice);
+    expect(draft.filename).toBe("clip.mp4");
+    expect(draft.isPrivate).toBe(false);
 
     const published = await actor.publishVideo(draft.id);
     expect(published.status).toEqual({ published: null });
@@ -115,14 +125,42 @@ describe("YourChain backend", () => {
     await expect(actor.subscribe(bob)).rejects.toThrow(/Cannot subscribe to yourself/);
   });
 
-  it("isolates upload sessions by owner", async () => {
-    actor.setPrincipal(alice);
-    const session = await actor.createUploadSession({ video: null }, 50n, "video/mp4");
-
-    // bob does not own alice's session and cannot upload to it.
+  it("keeps private videos out of every public read and exposes them to the owner", async () => {
     actor.setPrincipal(bob);
-    await expect(actor.uploadChunk(session.id, 0n, new Uint8Array(10))).rejects.toThrow(
-      /Not the session owner/,
+    await actor.subscribe(alice);
+
+    const privateVideo = await publishVideo(alice, "Alice private", 50, true);
+
+    // Even the owner does not receive private videos through the global feed.
+    const ownerFeed = await actor.getFeed(0n, 100n);
+    expect(ownerFeed.items.some((video) => video.id === privateVideo.id)).toBe(false);
+
+    actor.setPrincipal(bob);
+    const feed = await actor.getFeed(0n, 100n);
+    const subscriptionFeed = await actor.getSubscriptionFeed(0n, 100n);
+    const channel = await actor.getChannelVideos(alice, 0n, 100n);
+    expect(feed.items.some((video) => video.id === privateVideo.id)).toBe(false);
+    expect(subscriptionFeed.items.some((video) => video.id === privateVideo.id)).toBe(false);
+    expect(channel.items.some((video) => video.id === privateVideo.id)).toBe(false);
+    expect(await actor.getVideo(privateVideo.id)).toEqual([]);
+
+    const notifications = await actor.getNotifications(0n, 100n);
+    expect(
+      notifications.items.some(
+        (notification) =>
+          "newVideo" in notification.kind &&
+          notification.kind.newVideo.videoId === privateVideo.id,
+      ),
+    ).toBe(false);
+
+    actor.setPrincipal(alice);
+    expect((await actor.getVideo(privateVideo.id))[0]?.id).toBe(privateVideo.id);
+    const ownerChannel = await actor.getChannelVideos(alice, 0n, 100n);
+    expect(ownerChannel.items).toContainEqual(
+      expect.objectContaining({ id: privateVideo.id, isPrivate: true }),
     );
+
+    actor.setPrincipal(bob);
+    await actor.unsubscribe(alice);
   });
 });

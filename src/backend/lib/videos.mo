@@ -6,111 +6,38 @@ import Videos "../types/videos";
 import FeedLib "../lib/feed";
 
 module {
-  public func createUploadSession(
-    uploadSessions : Map.Map<Nat, Videos.UploadSession>,
-    counters : Common.Counters,
-    ownerId : Common.UserId,
-    kind : Videos.UploadKind,
-    assetId : Text,
-    mimeType : Text,
-    totalSize : Nat,
-    chunkSize : Nat,
-    now : Common.Timestamp,
-  ) : Videos.UploadSession {
-    let id = counters.nextUploadSessionId;
-    counters.nextUploadSessionId += 1;
-    let session : Videos.UploadSession = {
-      id;
-      ownerId;
-      kind;
-      assetId;
-      mimeType;
-      totalSize;
-      chunkSize;
-      receivedBytes = 0;
-      status = #active;
-      createdAt = now;
-    };
-    uploadSessions.add(id, session);
-    session;
-  };
-
-  public func getUploadSession(uploadSessions : Map.Map<Nat, Videos.UploadSession>, id : Nat) : ?Videos.UploadSession {
-    uploadSessions.get(id);
-  };
-
-  public func storeChunk(
-    uploadSessions : Map.Map<Nat, Videos.UploadSession>,
-    sessionId : Nat,
-    chunkIndex : Nat,
-    data : Blob,
-  ) : Nat {
-    ignore chunkIndex;
-    let session = uploadSessions.get(sessionId) ?? Runtime.trap("Upload session not found");
-    let updated = { session with receivedBytes = session.receivedBytes + data.size() };
-    uploadSessions.add(sessionId, updated);
-    updated.receivedBytes;
-  };
-
-  public func verifyUpload(uploadSessions : Map.Map<Nat, Videos.UploadSession>, sessionId : Nat) : () {
-    let session = uploadSessions.get(sessionId) ?? Runtime.trap("Upload session not found");
-    if (session.receivedBytes != session.totalSize) {
-      Runtime.trap("Upload incomplete");
-    };
-    let updated = { session with status = #completed };
-    uploadSessions.add(sessionId, updated);
-  };
-
-  public func verifyThumbnailOwnership(
-    uploadSessions : Map.Map<Nat, Videos.UploadSession>,
-    ownerId : Common.UserId,
-    thumbnailAssetId : ?Text,
-  ) : () {
-    switch (thumbnailAssetId) {
-      case (null) {};
-      case (?assetId) {
-        let owned = uploadSessions.entries()
-          .toArray()
-          .any(func (_, s) = s.kind == #thumbnail and s.assetId == assetId and s.ownerId == ownerId);
-        if (not owned) {
-          Runtime.trap("Unauthorized: Thumbnail asset not owned by caller");
-        };
-      };
-    };
-  };
-
-  public func finalizeMedia(
+  public func createVideo(
     videos : Map.Map<Nat, Videos.Video>,
-    uploadSessions : Map.Map<Nat, Videos.UploadSession>,
     counters : Common.Counters,
-    sessionId : Nat,
+    ownerId : Common.UserId,
     title : Text,
     description : ?Text,
-    thumbnailAssetId : ?Text,
+    videoBlob : Blob,
+    thumbnailBlob : ?Blob,
+    filename : Text,
+    mimeType : Text,
+    fileSize : Nat,
+    isPrivate : Bool,
     now : Common.Timestamp,
   ) : Videos.Video {
-    let session = uploadSessions.get(sessionId) ?? Runtime.trap("Upload session not found");
-    if (session.status != #completed) {
-      Runtime.trap("Upload not completed");
-    };
     let id = counters.nextVideoId;
     counters.nextVideoId += 1;
     let video : Videos.Video = {
       id;
-      ownerId = session.ownerId;
+      ownerId;
       title;
       description;
-      videoAssetId = session.assetId;
-      thumbnailAssetId;
-      mimeType = session.mimeType;
-      fileSize = session.totalSize;
+      video = videoBlob;
+      thumbnail = thumbnailBlob;
+      filename;
+      mimeType;
+      fileSize;
+      isPrivate;
       createdAt = now;
       publishedAt = null;
       status = #draft;
     };
     videos.add(id, video);
-    let updatedSession = { session with status = #finalized };
-    uploadSessions.add(sessionId, updatedSession);
     video;
   };
 

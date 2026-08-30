@@ -1,4 +1,5 @@
-import { storageService } from "@/services/storage";
+import { createActor } from "@/backend";
+import { userService } from "@/services/users";
 import type { Video } from "@/types";
 import {
   formatCount,
@@ -6,9 +7,10 @@ import {
   timeAgo,
   timestampToDate,
 } from "@/utils/format";
+import { useActor } from "@caffeineai/core-infrastructure";
+import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { Play } from "lucide-react";
-import { useEffect, useState } from "react";
+import { LockKeyhole, Play } from "lucide-react";
 
 interface VideoCardProps {
   video: Video;
@@ -31,27 +33,19 @@ export function VideoCard({
   viewCount,
   durationSeconds,
 }: VideoCardProps) {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    if (!video.thumbnailAssetId) {
-      setThumbnailUrl(null);
-      return;
-    }
-    setThumbnailUrl(null);
-    void storageService
-      .getDirectURL(video.thumbnailAssetId)
-      .then((url) => {
-        if (!cancelled) setThumbnailUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setThumbnailUrl(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [video.thumbnailAssetId]);
+  const { actor, isFetching } = useActor(createActor);
+  const channelQuery = useQuery({
+    queryKey: ["channel", video.ownerId.toString()],
+    queryFn: async () => {
+      if (!actor) return null;
+      return userService.getChannel(actor, video.ownerId);
+    },
+    enabled: channelName === undefined && !!actor && !isFetching,
+  });
+  const channel = channelName === undefined ? channelQuery.data : undefined;
+  const resolvedChannelName =
+    channelName ?? channel?.displayName ?? channel?.username ?? null;
+  const thumbnailUrl = video.thumbnail?.getDirectURL() ?? null;
 
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
   const relativeTime = timeAgo(publishedDate);
@@ -103,6 +97,13 @@ export function VideoCard({
             {formatDuration(durationSeconds)}
           </span>
         ) : null}
+
+        {video.isPrivate ? (
+          <span className="absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/80 px-2 py-1 text-xs font-medium text-white">
+            <LockKeyhole className="size-3" aria-hidden="true" />
+            Private
+          </span>
+        ) : null}
       </Link>
 
       <div className="flex flex-1 flex-col gap-1.5 p-3">
@@ -115,16 +116,27 @@ export function VideoCard({
           {video.title}
         </Link>
 
-        {channelName ? (
+        {resolvedChannelName ? (
           <Link
             to="/channel/$userId"
             params={{ userId: video.ownerId.toString() }}
             data-ocid="channel_link"
             className="truncate text-xs text-muted-foreground transition-colors hover:text-foreground"
           >
-            {channelName}
+            {resolvedChannelName}
           </Link>
-        ) : null}
+        ) : channelQuery.isLoading ? (
+          <span className="text-xs text-muted-foreground">
+            Loading channel…
+          </span>
+        ) : (
+          <span
+            data-ocid="anonymous_channel"
+            className="truncate text-xs text-muted-foreground"
+          >
+            Anonymous
+          </span>
+        )}
 
         <p className="text-xs text-muted-foreground">
           {views} views

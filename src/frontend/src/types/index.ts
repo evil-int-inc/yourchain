@@ -3,18 +3,15 @@ import {
   type NotificationKind as BackendNotificationKind,
   type Page_1 as BackendNotificationPage,
   type Page as BackendPage,
-  type UploadSession as BackendUploadSession,
   type User as BackendUser,
   type Video as BackendVideo,
-  UploadKind,
-  UploadStatus,
   UserRole,
   VideoStatus,
 } from "@/backend";
 import type { Principal } from "@icp-sdk/core/principal";
 
 /** Re-exported backend enums for convenience. */
-export { UploadKind, UploadStatus, UserRole, VideoStatus };
+export { UserRole, VideoStatus };
 
 export type UserId = Principal;
 export type Timestamp = bigint;
@@ -22,7 +19,6 @@ export type Cursor = bigint;
 
 export interface User extends BackendUser {}
 export interface Video extends BackendVideo {}
-export interface UploadSession extends BackendUploadSession {}
 export interface Notification extends BackendNotification {}
 export type NotificationKind = BackendNotificationKind;
 

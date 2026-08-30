@@ -23,7 +23,6 @@ mixin (
   };
 
   public query ({ caller }) func getChannelVideos(userId : Common.UserId, cursor : Common.Cursor, limit : Nat) : async Common.Page<Videos.Video> {
-    ignore caller;
-    FeedLib.getChannelVideos(videos, userId, cursor, limit);
+    FeedLib.getChannelVideos(videos, userId, caller, cursor, limit);
   };
 };

@@ -1,4 +1,5 @@
 import Map "mo:core/Map";
+import Array "mo:core/Array";
 import Set "mo:core/Set";
 import List "mo:core/List";
 import Principal "mo:core/Principal";
@@ -12,6 +13,7 @@ import IntValue "mo:caffeineai-oql/IntValue";
 import TextValue "mo:caffeineai-oql/TextValue";
 import PrincipalValue "mo:caffeineai-oql/PrincipalValue";
 import BoolValue "mo:caffeineai-oql/BoolValue";
+import MixinObjectStorage "mo:caffeineai-object-storage/Mixin";
 import Common "types/common";
 import Users "types/users";
 import Videos "types/videos";
@@ -80,8 +82,9 @@ actor {
   let storage : Storage.StorageState;
 
   include MixinAuthorization(accessControlState, null);
+  include MixinObjectStorage();
   include UsersApi(accessControlState, users, usernames);
-  include VideosApi(accessControlState, videos, uploadSessions, counters, storage, subscribers, notifications);
+  include VideosApi(accessControlState, videos, counters, subscribers, notifications);
   include StorageApi(accessControlState, storage);
   include SubscriptionsApi(accessControlState, subscriptions, subscribers, notifications, counters);
   include NotificationsApi(accessControlState, notifications, counters);
@@ -99,14 +102,16 @@ actor {
         .public_()
         .build(),
       videos.toEntityManual("video", "Video", "id")
-        .sample({ id = 0; ownerId = Principal.fromText("aaaaa-aa"); title = ""; description = null; videoAssetId = ""; thumbnailAssetId = null; mimeType = ""; fileSize = 0; createdAt = 0; publishedAt = null; status = #draft })
+        .sample({ id = 0; ownerId = Principal.fromText("aaaaa-aa"); title = ""; description = null; video = Array.toBlob([]); thumbnail = null; filename = ""; mimeType = ""; fileSize = 0; isPrivate = false; createdAt = 0; publishedAt = null; status = #draft })
         .payload("id", func v = v.id)
         .payload("ownerId", func v = v.ownerId)
         .payload("title", func v = v.title)
         .payload("mimeType", func v = v.mimeType)
         .payload("fileSize", func v = v.fileSize)
+        .payload("isPrivate", func v = v.isPrivate)
         .payload("createdAt", func v = v.createdAt)
-        .public_()
+        .ownedBy("ownerId")
+        .scopedPerUser()
         .build(),
       uploadSessions.toEntityManual("uploadSession", "UploadSession", "id")
         .sample({ id = 0; ownerId = Principal.fromText("aaaaa-aa"); kind = #video; assetId = ""; mimeType = ""; totalSize = 0; chunkSize = 0; receivedBytes = 0; status = #active; createdAt = 0 })

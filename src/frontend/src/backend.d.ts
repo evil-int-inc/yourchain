@@ -7,18 +7,22 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
+import type { ExternalBlob } from "@caffeineai/object-storage";
+export type { ExternalBlob } from "@caffeineai/object-storage";
 export interface Video {
     id: bigint;
     status: VideoStatus;
     title: string;
+    thumbnail?: ExternalBlob;
     ownerId: UserId;
+    video: ExternalBlob;
     createdAt: Timestamp;
-    videoAssetId: string;
     publishedAt?: Timestamp;
     mimeType: string;
     description?: string;
     fileSize: bigint;
-    thumbnailAssetId?: string;
+    filename: string;
+    isPrivate: boolean;
 }
 export type Timestamp = bigint;
 export type Cursor = bigint;
@@ -49,6 +53,10 @@ export type Result__1 = {
     __kind__: "err";
     err: Error_;
 };
+export interface Page_1 {
+    items: Array<Notification>;
+    nextCursor?: Cursor;
+}
 export type Error_ = {
     __kind__: "FrontendOriginsNotConfigured";
     FrontendOriginsNotConfigured: null;
@@ -93,10 +101,6 @@ export type Error_ = {
         expected: Array<string>;
     };
 };
-export interface Page_1 {
-    items: Array<Notification>;
-    nextCursor?: Cursor;
-}
 export type UserId = Principal;
 export interface Result {
     hasMore: boolean;
@@ -105,18 +109,6 @@ export interface Result {
 export interface Page {
     items: Array<Video>;
     nextCursor?: Cursor;
-}
-export interface UploadSession {
-    id: bigint;
-    status: UploadStatus;
-    ownerId: UserId;
-    assetId: string;
-    kind: UploadKind;
-    createdAt: Timestamp;
-    receivedBytes: bigint;
-    mimeType: string;
-    totalSize: bigint;
-    chunkSize: bigint;
 }
 export interface Notification {
     id: bigint;
@@ -148,16 +140,6 @@ export type Value = {
     __kind__: "text";
     text: string;
 };
-export enum UploadKind {
-    thumbnail = "thumbnail",
-    video = "video"
-}
-export enum UploadStatus {
-    active = "active",
-    cancelled = "cancelled",
-    completed = "completed",
-    finalized = "finalized"
-}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -171,10 +153,9 @@ export enum VideoStatus {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    createUploadSession(kind: UploadKind, totalSize: bigint, mimeType: string): Promise<UploadSession>;
+    createVideo(title: string, description: string | null, video: ExternalBlob, thumbnail: ExternalBlob | null, filename: string, mimeType: string, fileSize: bigint, isPrivate: boolean): Promise<Video>;
     deleteVideo(videoId: bigint): Promise<void>;
     execute(qJson: string): Promise<Result>;
-    finalizeMedia(sessionId: bigint, title: string, description: string | null, thumbnailAssetId: string | null): Promise<Video>;
     getApiDoc(): Promise<string>;
     getCallerProfile(): Promise<User | null>;
     getCallerUserRole(): Promise<UserRole>;
@@ -199,6 +180,4 @@ export interface backendInterface {
     schema(): Promise<string>;
     subscribe(channelId: UserId): Promise<void>;
     unsubscribe(channelId: UserId): Promise<void>;
-    uploadChunk(sessionId: bigint, chunkIndex: bigint, data: Uint8Array): Promise<bigint>;
-    verifyUpload(sessionId: bigint): Promise<void>;
 }

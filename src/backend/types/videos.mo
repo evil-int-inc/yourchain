@@ -1,4 +1,5 @@
 import Common "../types/common";
+import Storage "mo:caffeineai-object-storage/Storage";
 
 module {
   public type VideoStatus = {
@@ -13,10 +14,12 @@ module {
     ownerId : Common.UserId;
     title : Text;
     description : ?Text;
-    videoAssetId : Text;
-    thumbnailAssetId : ?Text;
+    video : Storage.ExternalBlob;
+    thumbnail : ?Storage.ExternalBlob;
+    filename : Text;
     mimeType : Text;
     fileSize : Nat;
+    isPrivate : Bool;
     createdAt : Common.Timestamp;
     publishedAt : ?Common.Timestamp;
     status : VideoStatus;

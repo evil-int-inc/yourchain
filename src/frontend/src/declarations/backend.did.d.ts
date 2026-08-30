@@ -27,6 +27,7 @@ export type Error = { 'FrontendOriginsNotConfigured' : null } |
   { 'UntrustedSsoSource' : { 'domain' : string } } |
   { 'MissingField' : string } |
   { 'FrontendOriginMismatch' : { 'got' : string, 'expected' : Array<string> } };
+export type ExternalBlob = Uint8Array;
 export interface Notification {
   'id' : bigint,
   'kind' : NotificationKind,
@@ -47,24 +48,6 @@ export interface Result { 'hasMore' : boolean, 'rows' : Array<Array<Cell>> }
 export type Result__1 = { 'ok' : null } |
   { 'err' : Error };
 export type Timestamp = bigint;
-export type UploadKind = { 'thumbnail' : null } |
-  { 'video' : null };
-export interface UploadSession {
-  'id' : bigint,
-  'status' : UploadStatus,
-  'ownerId' : UserId,
-  'assetId' : string,
-  'kind' : UploadKind,
-  'createdAt' : Timestamp,
-  'receivedBytes' : bigint,
-  'mimeType' : string,
-  'totalSize' : bigint,
-  'chunkSize' : bigint,
-}
-export type UploadStatus = { 'active' : null } |
-  { 'cancelled' : null } |
-  { 'completed' : null } |
-  { 'finalized' : null };
 export interface User {
   'id' : UserId,
   'bio' : [] | [string],
@@ -87,34 +70,70 @@ export interface Video {
   'id' : bigint,
   'status' : VideoStatus,
   'title' : string,
+  'thumbnail' : [] | [ExternalBlob],
   'ownerId' : UserId,
+  'video' : ExternalBlob,
   'createdAt' : Timestamp,
-  'videoAssetId' : string,
   'publishedAt' : [] | [Timestamp],
   'mimeType' : string,
   'description' : [] | [string],
   'fileSize' : bigint,
-  'thumbnailAssetId' : [] | [string],
+  'filename' : string,
+  'isPrivate' : boolean,
 }
 export type VideoStatus = { 'deleted' : null } |
   { 'published' : null } |
   { 'processing' : null } |
   { 'draft' : null };
+export interface _ImmutableObjectStorageCreateCertificateResult {
+  'method' : string,
+  'blob_hash' : string,
+}
+export interface _ImmutableObjectStorageRefillInformation {
+  'proposed_top_up_amount' : [] | [bigint],
+}
+export interface _ImmutableObjectStorageRefillResult {
+  'success' : [] | [boolean],
+  'topped_up_amount' : [] | [bigint],
+}
 export interface _SERVICE {
+  '_immutableObjectStorageBlobsAreLive' : ActorMethod<
+    [Array<Uint8Array>],
+    Array<boolean>
+  >,
+  '_immutableObjectStorageBlobsToDelete' : ActorMethod<[], Array<Uint8Array>>,
+  '_immutableObjectStorageConfirmBlobDeletion' : ActorMethod<
+    [Array<Uint8Array>],
+    undefined
+  >,
+  '_immutableObjectStorageCreateCertificate' : ActorMethod<
+    [string],
+    _ImmutableObjectStorageCreateCertificateResult
+  >,
+  '_immutableObjectStorageRefillCashier' : ActorMethod<
+    [[] | [_ImmutableObjectStorageRefillInformation]],
+    _ImmutableObjectStorageRefillResult
+  >,
+  '_immutableObjectStorageUpdateGatewayPrincipals' : ActorMethod<[], undefined>,
   '_initialize_access_control' : ActorMethod<[], undefined>,
   '_internet_identity_sign_in_finish' : ActorMethod<[], Result__1>,
   '_internet_identity_sign_in_start' : ActorMethod<[], Uint8Array>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
-  'createUploadSession' : ActorMethod<
-    [UploadKind, bigint, string],
-    UploadSession
+  'createVideo' : ActorMethod<
+    [
+      string,
+      [] | [string],
+      ExternalBlob,
+      [] | [ExternalBlob],
+      string,
+      string,
+      bigint,
+      boolean,
+    ],
+    Video
   >,
   'deleteVideo' : ActorMethod<[bigint], undefined>,
   'execute' : ActorMethod<[string], Result>,
-  'finalizeMedia' : ActorMethod<
-    [bigint, string, [] | [string], [] | [string]],
-    Video
-  >,
   'getApiDoc' : ActorMethod<[], string>,
   'getCallerProfile' : ActorMethod<[], [] | [User]>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
@@ -142,8 +161,6 @@ export interface _SERVICE {
   'schema' : ActorMethod<[], string>,
   'subscribe' : ActorMethod<[UserId], undefined>,
   'unsubscribe' : ActorMethod<[UserId], undefined>,
-  'uploadChunk' : ActorMethod<[bigint, bigint, Uint8Array], bigint>,
-  'verifyUpload' : ActorMethod<[bigint], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

@@ -8,6 +8,17 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
+export const _ImmutableObjectStorageCreateCertificateResult = IDL.Record({
+  'method' : IDL.Text,
+  'blob_hash' : IDL.Text,
+});
+export const _ImmutableObjectStorageRefillInformation = IDL.Record({
+  'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+});
+export const _ImmutableObjectStorageRefillResult = IDL.Record({
+  'success' : IDL.Opt(IDL.Bool),
+  'topped_up_amount' : IDL.Opt(IDL.Nat),
+});
 export const Error = IDL.Variant({
   'FrontendOriginsNotConfigured' : IDL.Null,
   'MixedSsoSources' : IDL.Record({
@@ -35,29 +46,29 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
-export const UploadKind = IDL.Variant({
-  'thumbnail' : IDL.Null,
-  'video' : IDL.Null,
-});
-export const UploadStatus = IDL.Variant({
-  'active' : IDL.Null,
-  'cancelled' : IDL.Null,
-  'completed' : IDL.Null,
-  'finalized' : IDL.Null,
+export const ExternalBlob = IDL.Vec(IDL.Nat8);
+export const VideoStatus = IDL.Variant({
+  'deleted' : IDL.Null,
+  'published' : IDL.Null,
+  'processing' : IDL.Null,
+  'draft' : IDL.Null,
 });
 export const UserId = IDL.Principal;
 export const Timestamp = IDL.Int;
-export const UploadSession = IDL.Record({
+export const Video = IDL.Record({
   'id' : IDL.Nat,
-  'status' : UploadStatus,
+  'status' : VideoStatus,
+  'title' : IDL.Text,
+  'thumbnail' : IDL.Opt(ExternalBlob),
   'ownerId' : UserId,
-  'assetId' : IDL.Text,
-  'kind' : UploadKind,
+  'video' : ExternalBlob,
   'createdAt' : Timestamp,
-  'receivedBytes' : IDL.Nat,
+  'publishedAt' : IDL.Opt(Timestamp),
   'mimeType' : IDL.Text,
-  'totalSize' : IDL.Nat,
-  'chunkSize' : IDL.Nat,
+  'description' : IDL.Opt(IDL.Text),
+  'fileSize' : IDL.Nat,
+  'filename' : IDL.Text,
+  'isPrivate' : IDL.Bool,
 });
 export const Value = IDL.Variant({
   'int' : IDL.Int,
@@ -71,25 +82,6 @@ export const Cell = IDL.Record({ 'value' : Value, 'name' : IDL.Text });
 export const Result = IDL.Record({
   'hasMore' : IDL.Bool,
   'rows' : IDL.Vec(IDL.Vec(Cell)),
-});
-export const VideoStatus = IDL.Variant({
-  'deleted' : IDL.Null,
-  'published' : IDL.Null,
-  'processing' : IDL.Null,
-  'draft' : IDL.Null,
-});
-export const Video = IDL.Record({
-  'id' : IDL.Nat,
-  'status' : VideoStatus,
-  'title' : IDL.Text,
-  'ownerId' : UserId,
-  'createdAt' : Timestamp,
-  'videoAssetId' : IDL.Text,
-  'publishedAt' : IDL.Opt(Timestamp),
-  'mimeType' : IDL.Text,
-  'description' : IDL.Opt(IDL.Text),
-  'fileSize' : IDL.Nat,
-  'thumbnailAssetId' : IDL.Opt(IDL.Text),
 });
 export const User = IDL.Record({
   'id' : UserId,
@@ -121,22 +113,52 @@ export const Page_1 = IDL.Record({
 });
 
 export const idlService = IDL.Service({
+  '_immutableObjectStorageBlobsAreLive' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [IDL.Vec(IDL.Bool)],
+      ['query'],
+    ),
+  '_immutableObjectStorageBlobsToDelete' : IDL.Func(
+      [],
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      ['query'],
+    ),
+  '_immutableObjectStorageConfirmBlobDeletion' : IDL.Func(
+      [IDL.Vec(IDL.Vec(IDL.Nat8))],
+      [],
+      [],
+    ),
+  '_immutableObjectStorageCreateCertificate' : IDL.Func(
+      [IDL.Text],
+      [_ImmutableObjectStorageCreateCertificateResult],
+      [],
+    ),
+  '_immutableObjectStorageRefillCashier' : IDL.Func(
+      [IDL.Opt(_ImmutableObjectStorageRefillInformation)],
+      [_ImmutableObjectStorageRefillResult],
+      [],
+    ),
+  '_immutableObjectStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
   '_initialize_access_control' : IDL.Func([], [], []),
   '_internet_identity_sign_in_finish' : IDL.Func([], [Result__1], []),
   '_internet_identity_sign_in_start' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-  'createUploadSession' : IDL.Func(
-      [UploadKind, IDL.Nat, IDL.Text],
-      [UploadSession],
+  'createVideo' : IDL.Func(
+      [
+        IDL.Text,
+        IDL.Opt(IDL.Text),
+        ExternalBlob,
+        IDL.Opt(ExternalBlob),
+        IDL.Text,
+        IDL.Text,
+        IDL.Nat,
+        IDL.Bool,
+      ],
+      [Video],
       [],
     ),
   'deleteVideo' : IDL.Func([IDL.Nat], [], []),
   'execute' : IDL.Func([IDL.Text], [Result], ['query']),
-  'finalizeMedia' : IDL.Func(
-      [IDL.Nat, IDL.Text, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-      [Video],
-      [],
-    ),
   'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
   'getCallerProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -165,17 +187,22 @@ export const idlService = IDL.Service({
   'schema' : IDL.Func([], [IDL.Text], ['query']),
   'subscribe' : IDL.Func([UserId], [], []),
   'unsubscribe' : IDL.Func([UserId], [], []),
-  'uploadChunk' : IDL.Func(
-      [IDL.Nat, IDL.Nat, IDL.Vec(IDL.Nat8)],
-      [IDL.Nat],
-      [],
-    ),
-  'verifyUpload' : IDL.Func([IDL.Nat], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
+  const _ImmutableObjectStorageCreateCertificateResult = IDL.Record({
+    'method' : IDL.Text,
+    'blob_hash' : IDL.Text,
+  });
+  const _ImmutableObjectStorageRefillInformation = IDL.Record({
+    'proposed_top_up_amount' : IDL.Opt(IDL.Nat),
+  });
+  const _ImmutableObjectStorageRefillResult = IDL.Record({
+    'success' : IDL.Opt(IDL.Bool),
+    'topped_up_amount' : IDL.Opt(IDL.Nat),
+  });
   const Error = IDL.Variant({
     'FrontendOriginsNotConfigured' : IDL.Null,
     'MixedSsoSources' : IDL.Record({
@@ -203,29 +230,29 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
-  const UploadKind = IDL.Variant({
-    'thumbnail' : IDL.Null,
-    'video' : IDL.Null,
-  });
-  const UploadStatus = IDL.Variant({
-    'active' : IDL.Null,
-    'cancelled' : IDL.Null,
-    'completed' : IDL.Null,
-    'finalized' : IDL.Null,
+  const ExternalBlob = IDL.Vec(IDL.Nat8);
+  const VideoStatus = IDL.Variant({
+    'deleted' : IDL.Null,
+    'published' : IDL.Null,
+    'processing' : IDL.Null,
+    'draft' : IDL.Null,
   });
   const UserId = IDL.Principal;
   const Timestamp = IDL.Int;
-  const UploadSession = IDL.Record({
+  const Video = IDL.Record({
     'id' : IDL.Nat,
-    'status' : UploadStatus,
+    'status' : VideoStatus,
+    'title' : IDL.Text,
+    'thumbnail' : IDL.Opt(ExternalBlob),
     'ownerId' : UserId,
-    'assetId' : IDL.Text,
-    'kind' : UploadKind,
+    'video' : ExternalBlob,
     'createdAt' : Timestamp,
-    'receivedBytes' : IDL.Nat,
+    'publishedAt' : IDL.Opt(Timestamp),
     'mimeType' : IDL.Text,
-    'totalSize' : IDL.Nat,
-    'chunkSize' : IDL.Nat,
+    'description' : IDL.Opt(IDL.Text),
+    'fileSize' : IDL.Nat,
+    'filename' : IDL.Text,
+    'isPrivate' : IDL.Bool,
   });
   const Value = IDL.Variant({
     'int' : IDL.Int,
@@ -239,25 +266,6 @@ export const idlFactory = ({ IDL }) => {
   const Result = IDL.Record({
     'hasMore' : IDL.Bool,
     'rows' : IDL.Vec(IDL.Vec(Cell)),
-  });
-  const VideoStatus = IDL.Variant({
-    'deleted' : IDL.Null,
-    'published' : IDL.Null,
-    'processing' : IDL.Null,
-    'draft' : IDL.Null,
-  });
-  const Video = IDL.Record({
-    'id' : IDL.Nat,
-    'status' : VideoStatus,
-    'title' : IDL.Text,
-    'ownerId' : UserId,
-    'createdAt' : Timestamp,
-    'videoAssetId' : IDL.Text,
-    'publishedAt' : IDL.Opt(Timestamp),
-    'mimeType' : IDL.Text,
-    'description' : IDL.Opt(IDL.Text),
-    'fileSize' : IDL.Nat,
-    'thumbnailAssetId' : IDL.Opt(IDL.Text),
   });
   const User = IDL.Record({
     'id' : UserId,
@@ -289,22 +297,52 @@ export const idlFactory = ({ IDL }) => {
   });
   
   return IDL.Service({
+    '_immutableObjectStorageBlobsAreLive' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [IDL.Vec(IDL.Bool)],
+        ['query'],
+      ),
+    '_immutableObjectStorageBlobsToDelete' : IDL.Func(
+        [],
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        ['query'],
+      ),
+    '_immutableObjectStorageConfirmBlobDeletion' : IDL.Func(
+        [IDL.Vec(IDL.Vec(IDL.Nat8))],
+        [],
+        [],
+      ),
+    '_immutableObjectStorageCreateCertificate' : IDL.Func(
+        [IDL.Text],
+        [_ImmutableObjectStorageCreateCertificateResult],
+        [],
+      ),
+    '_immutableObjectStorageRefillCashier' : IDL.Func(
+        [IDL.Opt(_ImmutableObjectStorageRefillInformation)],
+        [_ImmutableObjectStorageRefillResult],
+        [],
+      ),
+    '_immutableObjectStorageUpdateGatewayPrincipals' : IDL.Func([], [], []),
     '_initialize_access_control' : IDL.Func([], [], []),
     '_internet_identity_sign_in_finish' : IDL.Func([], [Result__1], []),
     '_internet_identity_sign_in_start' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
-    'createUploadSession' : IDL.Func(
-        [UploadKind, IDL.Nat, IDL.Text],
-        [UploadSession],
+    'createVideo' : IDL.Func(
+        [
+          IDL.Text,
+          IDL.Opt(IDL.Text),
+          ExternalBlob,
+          IDL.Opt(ExternalBlob),
+          IDL.Text,
+          IDL.Text,
+          IDL.Nat,
+          IDL.Bool,
+        ],
+        [Video],
         [],
       ),
     'deleteVideo' : IDL.Func([IDL.Nat], [], []),
     'execute' : IDL.Func([IDL.Text], [Result], ['query']),
-    'finalizeMedia' : IDL.Func(
-        [IDL.Nat, IDL.Text, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
-        [Video],
-        [],
-      ),
     'getApiDoc' : IDL.Func([], [IDL.Text], ['query']),
     'getCallerProfile' : IDL.Func([], [IDL.Opt(User)], ['query']),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
@@ -333,12 +371,6 @@ export const idlFactory = ({ IDL }) => {
     'schema' : IDL.Func([], [IDL.Text], ['query']),
     'subscribe' : IDL.Func([UserId], [], []),
     'unsubscribe' : IDL.Func([UserId], [], []),
-    'uploadChunk' : IDL.Func(
-        [IDL.Nat, IDL.Nat, IDL.Vec(IDL.Nat8)],
-        [IDL.Nat],
-        [],
-      ),
-    'verifyUpload' : IDL.Func([IDL.Nat], [], []),
   });
 };
 

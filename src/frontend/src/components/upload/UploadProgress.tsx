@@ -1,6 +1,5 @@
 import { Button } from "@/components/ui/Button";
 import { Progress } from "@/components/ui/Progress";
-import { config } from "@/config";
 import { formatBytes } from "@/utils/format";
 import { Loader2 } from "lucide-react";
 
@@ -9,8 +8,6 @@ export interface UploadProgressProps {
   progress: number;
   /** Total size of the file being uploaded, in bytes. */
   fileSize: number;
-  /** Chunk size used by the upload orchestration, in bytes. */
-  chunkSize?: number;
   /** Human-readable status label shown above the bar. */
   status?: string;
   /** Optional cancel handler shown as a secondary action. */
@@ -20,17 +17,10 @@ export interface UploadProgressProps {
 export function UploadProgress({
   progress,
   fileSize,
-  chunkSize = config.uploadChunkSize,
   status = "Uploading",
   onCancel,
 }: UploadProgressProps) {
   const uploadedBytes = Math.round((fileSize * progress) / 100);
-  const totalChunks = Math.max(1, Math.ceil(fileSize / chunkSize));
-  const currentChunk = Math.min(
-    totalChunks,
-    Math.max(1, Math.ceil(uploadedBytes / chunkSize)),
-  );
-
   return (
     <div
       data-ocid="upload_progress"
@@ -55,10 +45,8 @@ export function UploadProgress({
           </span>{" "}
           of {formatBytes(fileSize)}
         </span>
-        <span className="text-muted-foreground">
-          Chunk{" "}
-          <span className="font-mono text-foreground">{currentChunk}</span> of{" "}
-          {totalChunks}
+        <span className="font-mono text-foreground">
+          {Math.round(progress)}%
         </span>
       </div>
 

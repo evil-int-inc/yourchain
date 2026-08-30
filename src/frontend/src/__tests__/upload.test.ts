@@ -1,174 +1,143 @@
-import type { Backend } from "@/backend";
+import { type Backend, ExternalBlob } from "@/backend";
 import { uploadService } from "@/services/upload";
-import { UploadKind, UploadStatus, VideoStatus } from "@/types";
-import type { UploadSession, Video } from "@/types";
+import { VideoStatus } from "@/types";
+import type { Video } from "@/types";
 import { describe, expect, it, vi } from "vitest";
 
-function makeSession(id: bigint, totalSize: bigint): UploadSession {
-  return {
-    id,
-    status: UploadStatus.active,
-    ownerId: "aaaaa-aa" as unknown as UploadSession["ownerId"],
-    assetId: `asset-${id}`,
-    kind: UploadKind.video,
-    createdAt: 0n,
-    receivedBytes: 0n,
-    mimeType: "video/mp4",
-    totalSize,
-    chunkSize: 1_000_000n,
-  };
-}
-
-function makeDraft(id: bigint, title: string): Video {
+function makeDraft(id: bigint, title: string, isPrivate = false): Video {
   return {
     id,
     title,
     status: VideoStatus.draft,
     ownerId: "aaaaa-aa" as unknown as Video["ownerId"],
     createdAt: 0n,
-    videoAssetId: "asset-video",
+    video: ExternalBlob.fromURL("https://example.com/video"),
+    filename: "clip.mp4",
     mimeType: "video/mp4",
     fileSize: 100n,
+    isPrivate,
   };
 }
 
-function makePublished(id: bigint, title: string): Video {
+function makePublished(id: bigint, title: string, isPrivate = false): Video {
   return {
-    ...makeDraft(id, title),
+    ...makeDraft(id, title, isPrivate),
     status: VideoStatus.published,
     publishedAt: 1n,
   };
 }
 
-function makeFile(size: number, type = "video/mp4"): File {
-  // jsdom's Blob lacks `arrayBuffer`, which the upload service relies on when
-  // slicing the file into chunks. Build a File-like object whose `slice`
-  // returns a Blob-like with a working `arrayBuffer`.
-  const bytes = new Uint8Array(size);
-  const file = new File([bytes], "clip.mp4", { type });
-  Object.defineProperty(file, "slice", {
-    value: (start = 0, end = size) => ({
-      arrayBuffer: async () => bytes.slice(start, end).buffer,
-    }),
+function makeFile(size: number, type = "video/mp4", name = "clip.mp4"): File {
+  const bytes = new Uint8Array(Math.min(size, 1_024));
+  const file = new File([bytes], name, { type });
+  Object.defineProperty(file, "size", { value: size });
+  Object.defineProperty(file, "arrayBuffer", {
+    value: async () => bytes.buffer,
   });
   return file;
 }
 
 describe("uploadVideo", () => {
-  it("runs the full chunked upload flow and returns the published video", async () => {
-    const createUploadSession = vi.fn(async () => makeSession(7n, 100n));
-    const uploadChunk = vi.fn(
-      async (_s: bigint, _i: bigint, data: Uint8Array) => BigInt(data.length),
+  it("uploads immutable blobs, creates a draft, and publishes it", async () => {
+    const createVideo = vi.fn<Backend["createVideo"]>(async () =>
+      makeDraft(1n, "My clip"),
     );
-    const verifyUpload = vi.fn(async () => undefined);
-    const finalizeMedia = vi.fn(async () => makeDraft(1n, "My clip"));
     const publishVideo = vi.fn(async () => makePublished(1n, "My clip"));
+    const actor = { createVideo, publishVideo } as unknown as Backend;
 
-    const actor = {
-      createUploadSession,
-      uploadChunk,
-      verifyUpload,
-      finalizeMedia,
-      publishVideo,
-    } as unknown as Backend;
-
-    const file = makeFile(100);
     const result = await uploadService.uploadVideo(
       actor,
-      file,
+      makeFile(100),
       "My clip",
       "A description",
       null,
+      false,
     );
 
-    // The published video is returned so the UI reflects it in the feed.
     expect(result.status).toBe(VideoStatus.published);
-    expect(result.title).toBe("My clip");
-
-    // Session created for the video kind with the file's size and mime type.
-    expect(createUploadSession).toHaveBeenCalledWith(
-      UploadKind.video,
-      100n,
-      "video/mp4",
-    );
-
-    // Chunks uploaded, then verified, then finalized, then published.
-    expect(uploadChunk).toHaveBeenCalled();
-    expect(verifyUpload).toHaveBeenCalledWith(7n);
-    expect(finalizeMedia).toHaveBeenCalledWith(
-      7n,
-      "My clip",
-      "A description",
-      null,
-    );
+    expect(createVideo).toHaveBeenCalledTimes(1);
+    const args = createVideo.mock.calls[0];
+    expect(args[0]).toBe("My clip");
+    expect(args[1]).toBe("A description");
+    expect(args[2]).toBeInstanceOf(ExternalBlob);
+    expect(args[3]).toBeNull();
+    expect(args.slice(4)).toEqual(["clip.mp4", "video/mp4", 100n, false]);
     expect(publishVideo).toHaveBeenCalledWith(1n);
   });
 
-  it("rejects a video that exceeds the maximum size", async () => {
+  it("forwards private visibility to the backend", async () => {
+    const createVideo = vi.fn<Backend["createVideo"]>(async () =>
+      makeDraft(2n, "Private", true),
+    );
     const actor = {
-      createUploadSession: vi.fn(),
-      uploadChunk: vi.fn(),
-      verifyUpload: vi.fn(),
-      finalizeMedia: vi.fn(),
+      createVideo,
+      publishVideo: vi.fn(async () => makePublished(2n, "Private", true)),
+    } as unknown as Backend;
+
+    await uploadService.uploadVideo(
+      actor,
+      makeFile(100),
+      "Private",
+      null,
+      null,
+      true,
+    );
+
+    expect(createVideo.mock.calls[0][7]).toBe(true);
+  });
+
+  it("uploads an optional thumbnail as a preview storage reference", async () => {
+    const createVideo = vi.fn<Backend["createVideo"]>(async () =>
+      makeDraft(3n, "With preview"),
+    );
+    const actor = {
+      createVideo,
+      publishVideo: vi.fn(async () => makePublished(3n, "With preview")),
+    } as unknown as Backend;
+
+    await uploadService.uploadVideo(
+      actor,
+      makeFile(100),
+      "With preview",
+      null,
+      makeFile(50, "image/png", "preview.png"),
+      false,
+    );
+
+    expect(createVideo.mock.calls[0][3]).toBeInstanceOf(ExternalBlob);
+  });
+
+  it("rejects a video that exceeds the maximum size before uploading", async () => {
+    const actor = {
+      createVideo: vi.fn(),
       publishVideo: vi.fn(),
     } as unknown as Backend;
 
-    // 1 GB + 1 byte.
     const oversized = makeFile(1_073_741_825);
     await expect(
-      uploadService.uploadVideo(actor, oversized, "Too big", null, null),
+      uploadService.uploadVideo(actor, oversized, "Too big", null, null, false),
     ).rejects.toThrow(/exceeds the maximum size/);
 
-    // No session should have been created for an oversized file.
-    expect(actor.createUploadSession).not.toHaveBeenCalled();
+    expect(actor.createVideo).not.toHaveBeenCalled();
   });
 
-  it("reports progress as chunks are uploaded", async () => {
+  it("reports object-storage progress", async () => {
     const actor = {
-      createUploadSession: vi.fn(async () => makeSession(7n, 100n)),
-      uploadChunk: vi.fn(async (_s: bigint, _i: bigint, data: Uint8Array) =>
-        BigInt(data.length),
-      ),
-      verifyUpload: vi.fn(async () => undefined),
-      finalizeMedia: vi.fn(async () => makeDraft(1n, "My clip")),
+      createVideo: vi.fn(async () => makeDraft(1n, "My clip")),
       publishVideo: vi.fn(async () => makePublished(1n, "My clip")),
     } as unknown as Backend;
-
     const onProgress = vi.fn();
+
     await uploadService.uploadVideo(
       actor,
       makeFile(100),
       "My clip",
       null,
       null,
+      false,
       onProgress,
     );
 
-    expect(onProgress).toHaveBeenCalled();
     expect(onProgress).toHaveBeenLastCalledWith(100);
-  });
-
-  it("keeps every request below the backend's one-megabyte chunk limit", async () => {
-    const uploadedChunkSizes: number[] = [];
-    const actor = {
-      createUploadSession: vi.fn(async () => makeSession(7n, 2_100_000n)),
-      uploadChunk: vi.fn(async (_s: bigint, _i: bigint, data: Uint8Array) => {
-        uploadedChunkSizes.push(data.length);
-        return BigInt(data.length);
-      }),
-      verifyUpload: vi.fn(async () => undefined),
-      finalizeMedia: vi.fn(async () => makeDraft(1n, "My clip")),
-      publishVideo: vi.fn(async () => makePublished(1n, "My clip")),
-    } as unknown as Backend;
-
-    await uploadService.uploadVideo(
-      actor,
-      makeFile(2_100_000),
-      "My clip",
-      null,
-      null,
-    );
-
-    expect(uploadedChunkSizes).toEqual([1_000_000, 1_000_000, 100_000]);
   });
 });

@@ -8,7 +8,39 @@ import { afterEach, vi } from "vitest";
 // `@/backend` in the test environment fails. Tests never exercise the storage
 // client, so stub the package with a minimal shape.
 vi.mock("@caffeineai/object-storage", () => ({
-  ExternalBlob: class ExternalBlob {},
+  ExternalBlob: class ExternalBlob {
+    _blob?: Uint8Array<ArrayBuffer>;
+    directURL: string;
+
+    constructor(
+      directURL = "https://example.com/blob",
+      bytes?: Uint8Array<ArrayBuffer>,
+    ) {
+      this.directURL = directURL;
+      this._blob = bytes;
+    }
+
+    static fromURL(url: string) {
+      return new ExternalBlob(url);
+    }
+
+    static fromBytes(bytes: Uint8Array<ArrayBuffer>) {
+      return new ExternalBlob("blob:local-preview", bytes);
+    }
+
+    getDirectURL() {
+      return this.directURL;
+    }
+
+    async getBytes() {
+      return this._blob ?? new Uint8Array();
+    }
+
+    withUploadProgress(onProgress: (percentage: number) => void) {
+      onProgress(100);
+      return this;
+    }
+  },
 }));
 
 // Generated components use `data-ocid` as their test id attribute.

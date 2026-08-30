@@ -9,16 +9,15 @@ export interface UploadVideoInput {
   file: File;
   title: string;
   description?: string;
-  /** Optional thumbnail image uploaded to on-chain storage. */
+  isPrivate: boolean;
+  /** Optional thumbnail image uploaded to immutable object storage. */
   thumbnail?: File | null;
 }
 
 /**
- * Chunked video upload orchestration.
+ * Immutable object-storage video upload orchestration.
  *
- * Streams the file in chunks (with per-chunk retry + backoff), reports
- * progress via `onProgress`, and finalizes the upload into a video record.
- * Supports cancellation via `cancel()`.
+ * Reports storage progress and publishes the resulting video record.
  */
 export function useVideoUpload() {
   const { actor, isFetching } = useActor(createActor);
@@ -47,6 +46,7 @@ export function useVideoUpload() {
           input.title,
           input.description ?? null,
           input.thumbnail ?? null,
+          input.isPrivate,
           (percentage) => {
             if (abortRef.current) return;
             setProgress(percentage);

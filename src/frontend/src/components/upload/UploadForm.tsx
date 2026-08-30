@@ -3,13 +3,14 @@ import { Input } from "@/components/ui/Input";
 import { config } from "@/config";
 import { formatBytes } from "@/utils/format";
 import { Clapperboard, ImagePlus, UploadCloud, X } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 export interface UploadFormValues {
   file: File;
   title: string;
   description?: string;
-  /** Optional thumbnail image uploaded to on-chain storage. */
+  isPrivate: boolean;
+  /** Optional thumbnail image uploaded to immutable object storage. */
   thumbnail?: File | null;
 }
 
@@ -57,9 +58,21 @@ export function UploadForm({ onSubmit, disabled }: UploadFormProps) {
   const [description, setDescription] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [isPrivate, setIsPrivate] = useState(false);
+  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const videoInputRef = useRef<HTMLInputElement>(null);
   const thumbnailInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!videoFile || typeof URL.createObjectURL !== "function") {
+      setVideoPreviewUrl(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(videoFile);
+    setVideoPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [videoFile]);
 
   const handleVideoChange = (file: File | undefined) => {
     if (!file) return;
@@ -86,6 +99,7 @@ export function UploadForm({ onSubmit, disabled }: UploadFormProps) {
       file: videoFile as File,
       title: title.trim(),
       description: description.trim() || undefined,
+      isPrivate,
       thumbnail: thumbnailFile,
     });
   };
@@ -111,34 +125,44 @@ export function UploadForm({ onSubmit, disabled }: UploadFormProps) {
           onChange={(e) => handleVideoChange(e.target.files?.[0])}
         />
         {videoFile ? (
-          <div
-            data-ocid="video_file"
-            className="flex items-center gap-3 rounded-box border border-border bg-card p-4"
-          >
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Clapperboard className="size-6" aria-hidden="true" />
+          <div data-ocid="video_file" className="space-y-3">
+            {videoPreviewUrl ? (
+              <video
+                data-ocid="video_preview"
+                src={videoPreviewUrl}
+                controls
+                preload="metadata"
+                className="aspect-video w-full rounded-box border border-border bg-black object-contain"
+              >
+                <track kind="captions" label="Captions" />
+              </video>
+            ) : null}
+            <div className="flex items-center gap-3 rounded-box border border-border bg-card p-4">
+              <div className="flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                <Clapperboard className="size-6" aria-hidden="true" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-foreground">
+                  {videoFile.name}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatBytes(videoFile.size)}
+                </p>
+              </div>
+              <button
+                type="button"
+                data-ocid="remove_video_button"
+                aria-label="Remove video"
+                className="btn btn-ghost btn-sm btn-square text-muted-foreground"
+                onClick={() => {
+                  setVideoFile(null);
+                  setErrors((prev) => ({ ...prev, video: undefined }));
+                  if (videoInputRef.current) videoInputRef.current.value = "";
+                }}
+              >
+                <X className="size-4" aria-hidden="true" />
+              </button>
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-foreground">
-                {videoFile.name}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {formatBytes(videoFile.size)}
-              </p>
-            </div>
-            <button
-              type="button"
-              data-ocid="remove_video_button"
-              aria-label="Remove video"
-              className="btn btn-ghost btn-sm btn-square text-muted-foreground"
-              onClick={() => {
-                setVideoFile(null);
-                setErrors((prev) => ({ ...prev, video: undefined }));
-                if (videoInputRef.current) videoInputRef.current.value = "";
-              }}
-            >
-              <X className="size-4" aria-hidden="true" />
-            </button>
           </div>
         ) : (
           <button
@@ -205,6 +229,27 @@ export function UploadForm({ onSubmit, disabled }: UploadFormProps) {
           {description.length}/{config.maxDescriptionLength}
         </p>
       </div>
+
+      {/* Visibility */}
+      <label className="flex cursor-pointer items-start gap-3 rounded-box border border-border bg-card p-4">
+        <input
+          type="checkbox"
+          data-ocid="private_checkbox"
+          className="checkbox checkbox-info mt-0.5"
+          checked={isPrivate}
+          onChange={(event) => setIsPrivate(event.target.checked)}
+        />
+        <span>
+          <span className="block text-sm font-medium text-foreground">
+            Private video
+          </span>
+          <span className="mt-0.5 block text-xs text-muted-foreground">
+            {isPrivate
+              ? "Only you can find and watch this video."
+              : "Public videos appear in feeds and subscriptions."}
+          </span>
+        </span>
+      </label>
 
       {/* Optional thumbnail */}
       <div>

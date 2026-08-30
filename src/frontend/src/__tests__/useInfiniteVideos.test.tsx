@@ -1,3 +1,4 @@
+import { ExternalBlob } from "@/backend";
 import {
   type VideoPageFetcher,
   useInfiniteVideos,
@@ -14,9 +15,11 @@ function makeVideo(id: bigint, title: string): Video {
     status: VideoStatus.published,
     ownerId: "aaaaa-aa" as unknown as Video["ownerId"],
     createdAt: 0n,
-    videoAssetId: `asset-${id}`,
+    video: ExternalBlob.fromURL(`https://example.com/video-${id}`),
+    filename: `video-${id}.mp4`,
     mimeType: "video/mp4",
     fileSize: 100n,
+    isPrivate: false,
   };
 }
 

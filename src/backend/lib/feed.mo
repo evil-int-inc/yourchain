@@ -24,10 +24,14 @@ module {
     { items = page; nextCursor };
   };
 
-  func publishedSorted(videos : Map.Map<Nat, Videos.Video>, predicate : Videos.Video -> Bool) : [Videos.Video] {
+  func publishedSorted(
+    videos : Map.Map<Nat, Videos.Video>,
+    includePrivate : Bool,
+    predicate : Videos.Video -> Bool,
+  ) : [Videos.Video] {
     videos.entries()
       .toArray()
-      .filter(func (_, v) = v.status == #published and predicate(v))
+      .filter(func (_, v) = v.status == #published and (includePrivate or not v.isPrivate) and predicate(v))
       .map(func (_, v) = v)
       .sort(func (a, b) = Int.compare(b.id, a.id));
   };
@@ -37,7 +41,7 @@ module {
     cursor : Common.Cursor,
     limit : Nat,
   ) : Common.Page<Videos.Video> {
-    let published = publishedSorted(videos, func _ = true);
+    let published = publishedSorted(videos, false, func _ = true);
     paginate(published, func v = v.id, cursor, limit);
   };
 
@@ -52,17 +56,18 @@ module {
       case (?s) { s.toArray() };
       case null { [] };
     };
-    let published = publishedSorted(videos, func v = channels.contains(v.ownerId));
+    let published = publishedSorted(videos, false, func v = channels.contains(v.ownerId));
     paginate(published, func v = v.id, cursor, limit);
   };
 
   public func getChannelVideos(
     videos : Map.Map<Nat, Videos.Video>,
     userId : Common.UserId,
+    viewerId : Common.UserId,
     cursor : Common.Cursor,
     limit : Nat,
   ) : Common.Page<Videos.Video> {
-    let published = publishedSorted(videos, func v = v.ownerId == userId);
+    let published = publishedSorted(videos, viewerId == userId, func v = v.ownerId == userId);
     paginate(published, func v = v.id, cursor, limit);
   };
 };

@@ -83,8 +83,7 @@ export function UploadPage() {
           Upload a video
         </h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Publish a new video to your channel. Only finalized, published videos
-          appear in feeds.
+          Publish to everyone, or keep a video private to your account.
         </p>
       </header>
 
@@ -97,10 +96,15 @@ export function UploadPage() {
             <CheckCircle2 className="size-8" aria-hidden="true" />
           </div>
           <h2 className="font-display text-xl font-semibold text-foreground">
-            Your video is live
+            {uploadedVideo.isPrivate
+              ? "Your private video is ready"
+              : "Your video is live"}
           </h2>
           <p className="max-w-sm text-sm text-muted-foreground">
-            “{uploadedVideo.title}” has been published to your channel.
+            “{uploadedVideo.title}” has been published
+            {uploadedVideo.isPrivate
+              ? " privately and is visible only to you."
+              : " to your channel."}
           </p>
           <div className="mt-2 flex flex-wrap items-center justify-center gap-3">
             <Link

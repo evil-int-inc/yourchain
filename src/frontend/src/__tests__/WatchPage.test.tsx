@@ -1,3 +1,4 @@
+import { ExternalBlob } from "@/backend";
 import { WatchPage } from "@/pages/WatchPage";
 import { VideoStatus } from "@/types";
 import type { Video } from "@/types";
@@ -54,9 +55,11 @@ function makePublishedVideo(): Video {
     ownerId: "aaaaa-aa" as unknown as Video["ownerId"],
     createdAt: 0n,
     publishedAt: 1n,
-    videoAssetId: "asset-video",
+    video: ExternalBlob.fromURL("https://example.com/video"),
+    filename: "clip.mp4",
     mimeType: "video/mp4",
     fileSize: 100n,
+    isPrivate: false,
     description: "A great description",
   };
 }
@@ -86,8 +89,10 @@ describe("WatchPage", () => {
 
     expect(await screen.findByText("My published clip")).toBeInTheDocument();
     expect(screen.getByText("A great description")).toBeInTheDocument();
-    // The video player element is present.
-    expect(screen.getByTestId("video_player")).toBeInTheDocument();
+    expect(screen.getByTestId("video_element")).toHaveAttribute(
+      "src",
+      "https://example.com/video",
+    );
   });
 
   it("shows an unavailable state for a non-published video", async () => {
@@ -107,5 +112,28 @@ describe("WatchPage", () => {
     render(<WatchPage />);
 
     expect(await screen.findByText("Video unavailable")).toBeInTheDocument();
+  });
+
+  it("renders a missing profile as an unclickable Anonymous channel", async () => {
+    const video = makePublishedVideo();
+    useQueryMock.mockImplementation((options: { queryKey: string[] }) => {
+      if (options.queryKey[0] === "video") {
+        return {
+          data: video,
+          isLoading: false,
+          isError: false,
+          refetch: vi.fn(),
+        };
+      }
+      return { data: null, isLoading: false, isError: false, refetch: vi.fn() };
+    });
+
+    render(<WatchPage />);
+
+    expect(await screen.findByTestId("anonymous_channel")).toHaveTextContent(
+      "Anonymous",
+    );
+    expect(screen.queryByTestId("channel_link")).not.toBeInTheDocument();
+    expect(screen.queryByText("Subscribe")).not.toBeInTheDocument();
   });
 });

@@ -1,3 +1,16 @@
+type _ImmutableObjectStorageRefillResult =
+ record {
+   success: opt bool;
+   topped_up_amount: opt nat;
+ };
+type _ImmutableObjectStorageRefillInformation = record {
+                                                  proposed_top_up_amount:
+                                                   opt nat;};
+type _ImmutableObjectStorageCreateCertificateResult =
+ record {
+   blob_hash: text;
+   method: text;
+ };
 type VideoStatus = 
  variant {
    deleted;
@@ -10,14 +23,16 @@ type Video =
    createdAt: Timestamp;
    description: opt text;
    fileSize: nat;
+   filename: text;
    id: nat;
+   isPrivate: bool;
    mimeType: text;
    ownerId: UserId;
    publishedAt: opt Timestamp;
    status: VideoStatus;
-   thumbnailAssetId: opt text;
+   thumbnail: opt ExternalBlob;
    title: text;
-   videoAssetId: text;
+   video: ExternalBlob;
  };
 type Value = 
  variant {
@@ -43,31 +58,6 @@ type User =
    displayName: text;
    id: UserId;
    username: text;
- };
-type UploadStatus = 
- variant {
-   active;
-   cancelled;
-   completed;
-   finalized;
- };
-type UploadSession = 
- record {
-   assetId: text;
-   chunkSize: nat;
-   createdAt: Timestamp;
-   id: nat;
-   kind: UploadKind;
-   mimeType: text;
-   ownerId: UserId;
-   receivedBytes: nat;
-   status: UploadStatus;
-   totalSize: nat;
- };
-type UploadKind = 
- variant {
-   thumbnail;
-   video;
  };
 type Timestamp = int;
 type Result__1 = 
@@ -106,6 +96,7 @@ type Notification =
    read: bool;
    recipientId: UserId;
  };
+type ExternalBlob = blob;
 type Error = 
  variant {
    AmbiguousAttribute: record {
@@ -135,16 +126,24 @@ type Cell =
    value: Value;
  };
 service : {
+  _immutableObjectStorageBlobsAreLive: (hashes: vec blob) -> (vec bool) query;
+  _immutableObjectStorageBlobsToDelete: () -> (vec blob) query;
+  _immutableObjectStorageConfirmBlobDeletion: (blobs: vec blob) -> ();
+  _immutableObjectStorageCreateCertificate: (blobHash: text) ->
+   (_ImmutableObjectStorageCreateCertificateResult);
+  _immutableObjectStorageRefillCashier: (refillInformation:
+   opt _ImmutableObjectStorageRefillInformation) ->
+   (_ImmutableObjectStorageRefillResult);
+  _immutableObjectStorageUpdateGatewayPrincipals: () -> ();
   _initialize_access_control: () -> ();
   _internet_identity_sign_in_finish: () -> (Result__1);
   _internet_identity_sign_in_start: () -> (blob);
   assignCallerUserRole: (user: principal, role: UserRole) -> ();
-  createUploadSession: (kind: UploadKind, totalSize: nat, mimeType: text) ->
-   (UploadSession);
+  createVideo: (title: text, description: opt text, video: ExternalBlob,
+   thumbnail: opt ExternalBlob, filename: text, mimeType: text, fileSize:
+   nat, isPrivate: bool) -> (Video);
   deleteVideo: (videoId: nat) -> ();
   execute: (qJson: text) -> (Result) query;
-  finalizeMedia: (sessionId: nat, title: text, description: opt text,
-   thumbnailAssetId: opt text) -> (Video);
   getApiDoc: () -> (text) query;
   getCallerProfile: () -> (opt User) query;
   getCallerUserRole: () -> (UserRole) query;
@@ -171,6 +170,4 @@ service : {
   schema: () -> (text) query;
   subscribe: (channelId: UserId) -> ();
   unsubscribe: (channelId: UserId) -> ();
-  uploadChunk: (sessionId: nat, chunkIndex: nat, data: blob) -> (nat);
-  verifyUpload: (sessionId: nat) -> ();
 }

@@ -2,21 +2,21 @@ mixin () {
   public query func getApiDoc() : async Text {
     "# YourChain Backend API
 
-YourChain is a YouTube-like video platform built 100% on-chain on the Internet
-Computer. This document describes the public Candid API of the backend canister:
+YourChain is a YouTube-like video platform on the Internet Computer, with
+immutable object storage for large media. This document describes the public Candid API of the backend canister:
 its purpose, authentication and authorization model, identity derivation, units
 and encodings, lifecycle and polling rules, mutation retry safety, and the
 non-obvious integration gotchas.
 
 ## Purpose
 
-The backend stores users (channel profiles), videos and their upload sessions,
+The backend stores users (channel profiles), immutable video references,
 subscriptions, and per-user notifications. It exposes:
 
 - Public channel profiles and a global, published-only video feed with backend
   cursor pagination.
-- A chunked/resumable upload pipeline for videos (up to 1 GB) and thumbnails
-  (up to 20 MB).
+- Immutable object-storage uploads for videos (up to 1 GB) and optional
+  thumbnails (up to 20 MB in the frontend).
 - Subscribe/unsubscribe and a subscription feed of published videos.
 - Per-user notifications for new subscribers and new videos from subscribed
   channels.
@@ -42,12 +42,9 @@ subscriptions, and per-user notifications. It exposes:
 - `getCallerProfile() : async ?User`
 - `saveProfile(displayName : Text, username : Text, avatar : ?Text, bio : ?Text) : async User`
 
-### Upload & storage
+### Video & storage
 
-- `createUploadSession(kind : UploadKind, totalSize : Nat, mimeType : Text) : async UploadSession`
-- `uploadChunk(sessionId : Nat, chunkIndex : Nat, data : Blob) : async Nat`
-- `verifyUpload(sessionId : Nat) : async ()`
-- `finalizeMedia(sessionId : Nat, title : Text, description : ?Text, thumbnailAssetId : ?Text) : async Video`
+- `createVideo(title : Text, description : ?Text, video : ExternalBlob, thumbnail : ?ExternalBlob, filename : Text, mimeType : Text, fileSize : Nat, isPrivate : Bool) : async Video`
 - `publishVideo(videoId : Nat) : async Video`
 - `deleteVideo(videoId : Nat) : async ()`
 - `getVideo(videoId : Nat) : async ?Video`
@@ -139,48 +136,31 @@ expires.
   the last item already returned (see Lifecycle and polling).
 - **`Page<T>`** is `{ items : [T]; nextCursor : ?Nat }`.
 - **`VideoStatus`**: `#draft`, `#processing`, `#published`, `#deleted`.
-- **`UploadKind`**: `#video`, `#thumbnail`.
-- **`UploadStatus`**: `#active`, `#completed`, `#finalized`, `#cancelled`.
 - **`NotificationKind`**: `#newSubscriber { channelId }` or
   `#newVideo { channelId; videoId }`.
 - **`UserRole`**: `#admin`, `#user`, `#guest`.
-- **Optional fields**: `avatar`, `bio`, `description`, `thumbnailAssetId` are
-  `?Text`; `publishedAt` is `?Int`. `null` means absent.
-- **`data`** in `uploadChunk` is a `Blob` of raw bytes.
-- **`assetId`** is an opaque `Text` handle into the on-chain storage layer; it
-  is not a URL and should not be parsed by clients.
+- **Optional fields**: `avatar`, `bio`, and `description` are `?Text`;
+  `thumbnail` is `?ExternalBlob`; `publishedAt` is `?Int`. `null` means absent.
+- **`video` / `thumbnail`** are immutable object-storage references. Generated
+  frontend bindings expose them as `ExternalBlob`; use `getDirectURL()` for
+  browser playback or image display.
 
 ## Lifecycle and polling
 
 ### Upload pipeline
 
-The upload flow is:
+The frontend creates `ExternalBlob` values from the selected files. Generated
+bindings upload their bytes to the storage gateway in one-megabyte chunks,
+then call `createVideo` with immutable references and metadata. `createVideo`
+validates the declared video metadata and creates a `#draft` record.
+`publishVideo(videoId)` sets the record to `#published` and records
+`publishedAt`. Subscribers are notified only for public videos.
 
-    createUploadSession → uploadChunk (repeated) → verifyUpload → finalizeMedia → publishVideo
-
-1. `createUploadSession(kind, totalSize, mimeType)` validates the size against
-   the per-kind limit (1 GB for `#video`, 20 MB for `#thumbnail`) and returns a
-   session in `#active` status.
-2. `uploadChunk(sessionId, chunkIndex, data)` appends bytes to the session and
-   returns the new `receivedBytes`. Call it repeatedly until
-   `receivedBytes == totalSize`.
-3. `verifyUpload(sessionId)` marks the session `#completed` once
-   `receivedBytes == totalSize`; otherwise it traps `Upload incomplete`.
-4. `finalizeMedia(sessionId, title, description, thumbnailAssetId)` creates a
-   `#draft` video and marks the session `#finalized`. It traps `Upload not
-   completed` if the session is not `#completed`. The optional
-   `thumbnailAssetId` attaches a previously uploaded thumbnail asset to the
-   video's `thumbnailAssetId` field; pass `null` for no thumbnail. When a
-   thumbnail asset id is supplied, the backend verifies it belongs to a
-   `#thumbnail` upload session owned by the caller and traps
-   `Unauthorized: Thumbnail asset not owned by caller` otherwise.
-5. `publishVideo(videoId)` sets the video to `#published`, records
-   `publishedAt`, and notifies the owner's subscribers with a `#newVideo`
-   notification.
-
-Only videos with `#published` status appear in `getFeed`,
-`getSubscriptionFeed`, and `getChannelVideos`. `getVideo` returns a video only
-if it is `#published` or the caller is its owner.
+Global and subscription feeds return only public `#published` videos.
+Channel pages also return only public videos, except that the channel owner
+can see their own private published videos. `getVideo` returns a private video
+only to its owner, so privacy is enforced before media references reach the
+frontend.
 
 ### Pagination
 
@@ -192,13 +172,8 @@ returns an empty page with `nextCursor = null`.
 
 ## Mutation retry safety
 
-- **`uploadChunk` is NOT idempotent.** The backend ignores `chunkIndex` and
-  adds `data.size()` to `receivedBytes` on every call. Re-sending a chunk that
-  already landed double-counts its bytes: the call traps `Chunk exceeds
-  remaining size` once the running total would exceed `totalSize`, and a
-  double-counted-but-under-limit total makes `verifyUpload` trap `Upload
-  incomplete`. Do not blindly retry chunks; track which chunks landed and
-  resume from the last acknowledged `receivedBytes`.
+- Storage-gateway chunk retries are managed by the object-storage client before
+  the canister mutation is sent.
 - **`subscribe` / `unsubscribe`** are idempotent: subscribing twice to the same
   channel is a no-op (a set add), and unsubscribing from a channel you do not
   follow is a no-op. `subscribe` traps `Cannot subscribe to yourself` when
@@ -214,19 +189,14 @@ returns an empty page with `nextCursor = null`.
 
 - **Traps** (opaque rejects, not `Result` errors): `Unauthorized: Only users
   can perform this action`, `Unauthorized: Only admins can perform this
-  action`, `Unauthorized: Not the session owner`, `Unauthorized: Not the video
-  owner`, `User is not registered`, `Cannot subscribe to yourself`, `Username
-  already taken`, `File too large`, `Upload session not found`, `Video not
-  found`, `Upload session not active`, `Chunk exceeds remaining size`, `Upload
-  incomplete`, `Upload not completed`, `Unauthorized: Thumbnail asset not owned
-  by caller`.
-- **Size limits**: videos up to 1 GB, thumbnails up to 20 MB, enforced at
-  `createUploadSession`. Chunks are capped at 1 MB each by the backend's chunk
-  size.
-- **Ownership**: `uploadChunk`, `verifyUpload`, `finalizeMedia` require the
-  caller to own the session; `finalizeMedia` additionally requires any supplied
-  `thumbnailAssetId` to belong to a `#thumbnail` upload session owned by the
-  caller; `publishVideo`, `deleteVideo` require the caller to own the video.
+  action`, `Unauthorized: Not the video owner`, `User is not registered`,
+  `Cannot subscribe to yourself`, `Username already taken`, `Video not found`,
+  and validation messages for invalid title, filename, MIME type, description,
+  or file size.
+- **Size limits**: videos are limited to 1 GB by both the frontend and
+  `createVideo`; thumbnails are limited to 20 MB by the frontend.
+- **Ownership**: `publishVideo` and `deleteVideo` require the caller to own the
+  video. Private reads expose the record only to that same owner.
 
 ## Non-obvious integration gotchas
 
@@ -235,14 +205,11 @@ returns an empty page with `nextCursor = null`.
   `User is not registered` rather than receiving a graceful denial.
 - `deleteVideo` is a soft delete: the video row remains in storage with status
   `#deleted` and is simply excluded from feeds and `getVideo` for non-owners.
-- `uploadChunk` ignores `chunkIndex`; the byte accounting is purely additive,
-  so duplicate chunks corrupt the byte count (see Mutation retry safety).
-- `getVideo` returns `null` for a non-published video unless the caller is its
-  owner, so a draft is invisible to everyone but its owner.
+- `getVideo` returns `null` for a private or non-published video unless the
+  caller is its owner.
 - OQL `schema()` and `execute()` honour per-entity authorization: public
-  entities (`user`, `video`) are readable by anyone including anonymous
-  callers, while per-user entities (`uploadSession`, `subscription`,
-  `notification`) are scoped so each signed-in caller reads only its own rows.
+  users are readable by anyone, while videos, upload sessions, subscriptions,
+  and notifications are scoped so each signed-in caller reads only owned rows.
 "
   };
 };

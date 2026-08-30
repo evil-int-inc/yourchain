@@ -14,13 +14,13 @@ import { useActor } from "@caffeineai/core-infrastructure";
 import type { Principal } from "@icp-sdk/core/principal";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { VideoOff } from "lucide-react";
+import { LockKeyhole, VideoOff } from "lucide-react";
 
 /** Fetches a single video by id from the backend. */
-function useGetVideo(videoId: bigint) {
+function useGetVideo(videoId: bigint, viewerKey: string) {
   const { actor, isFetching } = useActor(createActor);
   return useQuery<Video | null>({
-    queryKey: ["video", videoId.toString()],
+    queryKey: ["video", videoId.toString(), viewerKey],
     queryFn: async () => {
       if (!actor) return null;
       return videoService.getVideo(actor, videoId);
@@ -47,7 +47,7 @@ export function WatchPage() {
   const { principal } = useAuth();
 
   const parsedId = /^\d+$/.test(videoId) ? BigInt(videoId) : null;
-  const videoQuery = useGetVideo(parsedId ?? 0n);
+  const videoQuery = useGetVideo(parsedId ?? 0n, principal ?? "anonymous");
   const video = videoQuery.data ?? null;
 
   const ownerId = video?.ownerId ?? null;
@@ -101,9 +101,8 @@ export function WatchPage() {
     );
   }
 
-  const channelOwnerId = video.ownerId;
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
-  const channelName = channel?.displayName ?? channel?.username ?? "Channel";
+  const channelName = channel?.displayName ?? channel?.username ?? "Anonymous";
 
   return (
     <div className="mx-auto max-w-5xl p-4 sm:p-6">
@@ -121,31 +120,54 @@ export function WatchPage() {
           <span data-ocid="video_size">{formatBytes(video.fileSize)}</span>
           <span aria-hidden="true">•</span>
           <span data-ocid="video_date">{timeAgo(publishedDate)}</span>
+          {video.isPrivate ? (
+            <>
+              <span aria-hidden="true">•</span>
+              <span className="flex items-center gap-1 text-info">
+                <LockKeyhole className="size-3.5" aria-hidden="true" />
+                Private
+              </span>
+            </>
+          ) : null}
         </div>
 
         <div className="mt-4 flex flex-col gap-4 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between">
-          <Link
-            to="/channel/$userId"
-            params={{ userId: channelOwnerId.toString() }}
-            data-ocid="channel_link"
-            className="group flex min-w-0 items-center gap-3"
-          >
-            <Avatar name={channelName} size="md" />
-            <span className="min-w-0">
-              <span className="block truncate text-sm font-medium text-foreground group-hover:text-primary">
-                {channelName}
+          {channel ? (
+            <Link
+              to="/channel/$userId"
+              params={{ userId: video.ownerId.toString() }}
+              data-ocid="channel_link"
+              className="group flex min-w-0 items-center gap-3"
+            >
+              <Avatar name={channelName} size="md" />
+              <span className="min-w-0">
+                <span className="block truncate text-sm font-medium text-foreground group-hover:text-primary">
+                  {channelName}
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  @{channel.username}
+                </span>
               </span>
-              <span className="block truncate text-xs text-muted-foreground">
-                @{channel?.username ?? "channel"}
+            </Link>
+          ) : (
+            <div
+              data-ocid="anonymous_channel"
+              className="flex min-w-0 items-center gap-3"
+            >
+              <Avatar name="Anonymous" size="md" />
+              <span className="block truncate text-sm font-medium text-foreground">
+                Anonymous
               </span>
-            </span>
-          </Link>
+            </div>
+          )}
 
-          <SubscribeButton
-            channelId={channelOwnerId.toString()}
-            hidden={isOwnChannel}
-            disabled={!principal}
-          />
+          {channel ? (
+            <SubscribeButton
+              channelId={video.ownerId.toString()}
+              hidden={isOwnChannel}
+              disabled={!principal}
+            />
+          ) : null}
         </div>
 
         {video.description ? (

@@ -1,3 +1,4 @@
+import { ExternalBlob } from "@/backend";
 import { ChannelPage } from "@/pages/ChannelPage";
 import { VideoStatus } from "@/types";
 import type { Video } from "@/types";
@@ -56,9 +57,11 @@ function makeVideo(id: bigint, title: string): Video {
     ownerId: "aaaaa-aa" as unknown as Video["ownerId"],
     createdAt: 0n,
     publishedAt: 1n,
-    videoAssetId: `asset-${id}`,
+    video: ExternalBlob.fromURL(`https://example.com/video-${id}`),
+    filename: `video-${id}.mp4`,
     mimeType: "video/mp4",
     fileSize: 100n,
+    isPrivate: false,
   };
 }
 

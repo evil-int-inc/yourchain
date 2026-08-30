@@ -1,7 +1,7 @@
 /**
  * Centralized limits and configuration for YourChain.
  *
- * All size, chunk, pagination, and retry limits live here so they are never
+ * All size and pagination limits live here so they are never
  * hardcoded across components or services. Tune values in one place.
  */
 
@@ -12,9 +12,6 @@ export const config = {
   /** Maximum accepted thumbnail image size in bytes (20 MB). */
   maxThumbnailSizeBytes: 20_971_520,
 
-  /** Default chunk size used when slicing a file for upload (1 MB). */
-  defaultChunkSizeBytes: 1_000_000,
-
   /** Number of videos requested per feed / pagination page. */
   feedPageSize: 12,
 
@@ -23,15 +20,6 @@ export const config = {
 
   /** Number of channel videos requested per page. */
   channelPageSize: 12,
-
-  /** Maximum client chunk size, matching the backend upload contract (1 MB). */
-  uploadChunkSize: 1_000_000,
-
-  /** Maximum upload retries per chunk before failing. */
-  maxUploadRetries: 3,
-
-  /** Backoff base (ms) between upload retries. */
-  uploadRetryBaseDelayMs: 800,
 
   /** Accepted video MIME types for upload. */
   acceptedVideoMimeTypes: ["video/mp4", "video/webm", "video/quicktime"],
