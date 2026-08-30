@@ -1,0 +1,19 @@
+{
+  "overview": "YourChain is a YouTube-like video platform built 100% on-chain on the Internet Computer, with Internet Identity auth, chunked/resumable video uploads, backend-paginated feeds, subscriptions, and watch pages.",
+  "features": [
+    "Sign in with Internet Identity and manage a public channel profile",
+    "Upload and publish videos up to 1 GB with chunked, resumable uploads and progress",
+    "Browse a global feed and a subscriptions feed with infinite scroll",
+    "Watch videos with streaming playback on a dedicated watch page",
+    "Subscribe and unsubscribe to channels and receive notifications",
+    "Responsive YouTube-like UI with YourChain branding"
+  ],
+  "category": "video-platform",
+  "tags": [
+    "video",
+    "on-chain",
+    "social",
+    "streaming"
+  ],
+  "last_updated": "2026-08-30T11:12:33.161Z"
+}

@@ -1,0 +1,232 @@
+import { createActor } from "@/backend";
+import { InfiniteScrollSentinel } from "@/components/common/InfiniteScrollSentinel";
+import { SubscribeButton } from "@/components/subscription/SubscribeButton";
+import { Avatar } from "@/components/ui/Avatar";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { ErrorState } from "@/components/ui/ErrorState";
+import { Loader } from "@/components/ui/Loader";
+import { Skeleton } from "@/components/ui/Skeleton";
+import { VideoGrid } from "@/components/video/VideoGrid";
+import { config } from "@/config";
+import { useAuth } from "@/hooks/useAuth";
+import { useInfiniteVideos } from "@/hooks/useInfiniteVideos";
+import { getDirectURL } from "@/services/storage";
+import { getChannel } from "@/services/users";
+import { getChannelVideos } from "@/services/videos";
+import { formatDate, timestampToDate } from "@/utils/format";
+import { useActor } from "@caffeineai/core-infrastructure";
+import { Principal } from "@icp-sdk/core/principal";
+import { useQuery } from "@tanstack/react-query";
+import { useParams } from "@tanstack/react-router";
+import { Clapperboard } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+
+/** Layout-matched skeleton for the channel header while the profile loads. */
+function ChannelHeaderSkeleton() {
+  return (
+    <div
+      data-ocid="channel_header_skeleton"
+      className="flex flex-col gap-4 rounded-box border border-border bg-card p-6 sm:flex-row sm:items-center"
+      aria-hidden="true"
+    >
+      <Skeleton circle className="size-20 shrink-0" />
+      <div className="flex flex-1 flex-col gap-2">
+        <Skeleton className="h-6 w-48" />
+        <Skeleton className="h-4 w-32" />
+        <Skeleton className="h-4 w-64" />
+      </div>
+      <Skeleton className="h-10 w-32" />
+    </div>
+  );
+}
+
+/** Stable keys for skeleton placeholders (avoids array-index keys). */
+const CHANNEL_SKELETON_KEYS = Array.from(
+  { length: config.channelPageSize },
+  (_, i) => `channel-skeleton-${i}`,
+);
+
+/** Layout-matched skeleton grid shown while the first video page loads. */
+function ChannelVideosSkeleton() {
+  return (
+    <div
+      data-ocid="channel_videos_skeleton"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      aria-hidden="true"
+    >
+      {CHANNEL_SKELETON_KEYS.map((key) => (
+        <div
+          key={key}
+          className="flex flex-col gap-2 overflow-hidden rounded-box border border-border bg-card p-3"
+        >
+          <Skeleton className="aspect-video w-full" />
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="h-3 w-1/3" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Public channel page at /channel/$userId. Shows the channel profile header
+ * (avatar, name, username, bio, member-since date, subscriber count) with a
+ * subscribe button, followed by the channel's published videos with cursor
+ * pagination and infinite scroll.
+ */
+export function ChannelPage() {
+  const { userId } = useParams({ from: "/channel/$userId" });
+  const channelPrincipal = Principal.fromText(userId);
+  const { actor, isFetching } = useActor(createActor);
+  const { principal } = useAuth();
+
+  const isOwnChannel = principal === userId;
+
+  const channelQuery = useQuery({
+    queryKey: ["channel", userId],
+    queryFn: async () => {
+      if (!actor) return null;
+      return getChannel(actor, channelPrincipal);
+    },
+    enabled: !!actor && !isFetching,
+  });
+
+  const channel = channelQuery.data;
+
+  // Resolve the avatar asset id to a direct URL when present.
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    if (!channel?.avatar) {
+      setAvatarUrl(null);
+      return;
+    }
+    setAvatarUrl(null);
+    void getDirectURL(channel.avatar)
+      .then((url) => {
+        if (!cancelled) setAvatarUrl(url);
+      })
+      .catch(() => {
+        if (!cancelled) setAvatarUrl(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [channel?.avatar]);
+
+  const fetcher = useCallback(
+    (cursor: bigint, limit: bigint) => {
+      if (!actor) return Promise.resolve({ items: [] });
+      return getChannelVideos(actor, channelPrincipal, cursor, limit);
+    },
+    [actor, channelPrincipal],
+  );
+
+  const { items, hasMore, loadMore, reset, isLoading, error } =
+    useInfiniteVideos({
+      fetcher,
+      pageSize: config.channelPageSize,
+      enabled: !!actor && !isFetching,
+    });
+
+  const initialLoading = isLoading && items.length === 0 && !error;
+  const memberSince = timestampToDate(channel?.createdAt ?? 0n);
+
+  return (
+    <section data-ocid="channel_page" className="flex flex-col gap-6">
+      {channelQuery.isLoading ? (
+        <ChannelHeaderSkeleton />
+      ) : channelQuery.isError || !channel ? (
+        <ErrorState
+          title="Couldn't load this channel"
+          message={
+            channelQuery.error instanceof Error
+              ? channelQuery.error.message
+              : "This channel may not exist or is unavailable."
+          }
+          onRetry={() => void channelQuery.refetch()}
+        />
+      ) : (
+        <header
+          data-ocid="channel_header"
+          className="flex flex-col gap-4 rounded-box border border-border bg-card p-6 sm:flex-row sm:items-center"
+        >
+          <Avatar
+            src={avatarUrl ?? undefined}
+            name={channel.displayName}
+            size="xl"
+            className="size-20 text-2xl"
+          />
+
+          <div className="flex flex-1 flex-col gap-1.5">
+            <h1 className="font-display text-2xl font-bold text-foreground">
+              {channel.displayName}
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              @{channel.username}
+              {memberSince ? (
+                <>
+                  <span aria-hidden="true" className="mx-1.5">
+                    ·
+                  </span>
+                  Joined {formatDate(memberSince)}
+                </>
+              ) : null}
+            </p>
+            {channel.bio ? (
+              <p className="max-w-2xl text-sm text-muted-foreground">
+                {channel.bio}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex items-center gap-3">
+            <SubscribeButton
+              channelId={userId}
+              hidden={isOwnChannel}
+              disabled={!principal}
+            />
+          </div>
+        </header>
+      )}
+
+      <div className="flex flex-col gap-4">
+        <h2 className="font-display text-lg font-semibold text-foreground">
+          Videos
+        </h2>
+
+        {error && items.length === 0 ? (
+          <ErrorState
+            title="Couldn't load this channel's videos"
+            message={error.message}
+            onRetry={reset}
+          />
+        ) : initialLoading ? (
+          <ChannelVideosSkeleton />
+        ) : items.length === 0 ? (
+          <EmptyState
+            icon={<Clapperboard className="size-7" aria-hidden="true" />}
+            title="No videos yet"
+            description="This channel hasn't published any videos yet. Check back soon."
+          />
+        ) : (
+          <>
+            <VideoGrid videos={items} channelName={channel?.displayName} />
+
+            <InfiniteScrollSentinel
+              onIntersect={() => void loadMore()}
+              disabled={!hasMore || isLoading}
+            />
+
+            {isLoading && items.length > 0 ? (
+              <div className="flex justify-center py-4">
+                <Loader label="Loading more videos" />
+              </div>
+            ) : null}
+          </>
+        )}
+      </div>
+    </section>
+  );
+}

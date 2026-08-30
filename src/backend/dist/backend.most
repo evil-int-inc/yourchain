@@ -1,0 +1,224 @@
+// Version: 4.0.0
+type AccessControlState__201339279 =
+  {
+    var adminAssigned : Bool;
+    userRoles : Map__386906547<Principal, UserRole__91647283>
+  };
+type Counters__177425929 =
+  {
+    var nextNotificationId : Nat;
+    var nextUploadSessionId : Nat;
+    var nextVideoId : Nat
+  };
+type Data__265875254<K, V> = {var count : Nat__58649523; kvs : [var ?(K, V)]};
+type Data__859131645<T> = {var count : Nat__58649523; elements : [var ?T]};
+type Internal__161573640<K, V> =
+  {children : [var ?Node__430031793<K, V>]; data : Data__265875254<K, V>};
+type Internal__778364379<T> =
+  {children : [var ?Node__1045371124<T>]; data : Data__859131645<T>};
+type Leaf__1045638083<K, V> = {data : Data__265875254<K, V>};
+type Leaf__776840865<T> = {data : Data__859131645<T>};
+type List__1004628775<T> =
+  {
+    var blockIndex : Nat__58649523;
+    var blocks : [var [var ?T]];
+    var elementIndex : Nat__58649523
+  };
+type List__89170296<T> = List__1004628775<T>;
+type Map__13625999<K, V> =
+  {var root : Node__430031793<K, V>; var size : Nat__58649523};
+type Map__386906547<K, V> = Map__670138087<K, V>;
+type Map__670138087<K, V> = Map__13625999<K, V>;
+type Nat__58649523 = Nat__920180692;
+type Nat__920180692 = Nat;
+type NewActor__816907118 =
+  {
+    accessControlState : AccessControlState__201339279;
+    counters : Counters__177425929;
+    notifications :
+      Map__386906547<UserId__102032063,
+                      List__89170296<Notification__588476026>>;
+    storage : StorageState__231977270;
+    subscribers :
+      Map__386906547<UserId__102032063, Set__195681557<UserId__102032063>>;
+    subscriptions :
+      Map__386906547<UserId__102032063, Set__195681557<UserId__102032063>>;
+    uploadSessions : Map__386906547<Nat, UploadSession__709497193>;
+    usernames : Map__386906547<Text, UserId__102032063>;
+    users : Map__386906547<UserId__102032063, User__719185563>;
+    videos : Map__386906547<Nat, Video__229399347>
+  };
+type Node__1045371124<T> =
+  {#internal : Internal__778364379<T>; #leaf : Leaf__776840865<T>};
+type Node__430031793<K, V> =
+  {#internal : Internal__161573640<K, V>; #leaf : Leaf__1045638083<K, V>};
+type NotificationKind__62040954 =
+  {
+    #newSubscriber : {channelId : UserId__102032063};
+    #newVideo : {channelId : UserId__102032063; videoId : Nat}
+  };
+type NotificationKind__631533211 =
+  {
+    #newSubscriber : {channelId : UserId__158757552};
+    #newVideo : {channelId : UserId__158757552; videoId : Nat}
+  };
+type Notification__264708741 =
+  {
+    createdAt : Timestamp__301639476;
+    id : Nat;
+    kind : NotificationKind__631533211;
+    read : Bool;
+    recipientId : UserId__158757552
+  };
+type Notification__588476026 =
+  {
+    createdAt : Timestamp__233582861;
+    id : Nat;
+    kind : NotificationKind__62040954;
+    read : Bool;
+    recipientId : UserId__102032063
+  };
+type OldActor__792294613 = {};
+type Set__195681557<T> = Set__29061695<T>;
+type Set__29061695<T> =
+  {var root : Node__1045371124<T>; var size : Nat__58649523};
+type StorageState__231977270 = {var providers : [Text]};
+type Timestamp__233582861 = Int;
+type Timestamp__301639476 = Int;
+type UploadKind__191438169 = {#thumbnail; #video};
+type UploadKind__508260726 = {#thumbnail; #video};
+type UploadSession__284063393 =
+  {
+    assetId : Text;
+    chunkSize : Nat;
+    createdAt : Timestamp__301639476;
+    id : Nat;
+    kind : UploadKind__191438169;
+    mimeType : Text;
+    ownerId : UserId__158757552;
+    receivedBytes : Nat;
+    status : UploadStatus__14148202;
+    totalSize : Nat
+  };
+type UploadSession__709497193 =
+  {
+    assetId : Text;
+    chunkSize : Nat;
+    createdAt : Timestamp__233582861;
+    id : Nat;
+    kind : UploadKind__508260726;
+    mimeType : Text;
+    ownerId : UserId__102032063;
+    receivedBytes : Nat;
+    status : UploadStatus__447660933;
+    totalSize : Nat
+  };
+type UploadStatus__14148202 = {#active; #cancelled; #completed; #finalized};
+type UploadStatus__447660933 = {#active; #cancelled; #completed; #finalized};
+type UserId__102032063 = Principal;
+type UserId__158757552 = Principal;
+type UserRole__91647283 = {#admin; #guest; #user};
+type User__719185563 =
+  {
+    avatar : ?Text;
+    bio : ?Text;
+    createdAt : Timestamp__233582861;
+    displayName : Text;
+    id : UserId__102032063;
+    username : Text
+  };
+type User__98118558 =
+  {
+    avatar : ?Text;
+    bio : ?Text;
+    createdAt : Timestamp__301639476;
+    displayName : Text;
+    id : UserId__158757552;
+    username : Text
+  };
+type VideoStatus__1027431841 = {#deleted; #draft; #processing; #published};
+type VideoStatus__107661496 = {#deleted; #draft; #processing; #published};
+type Video__1035008865 =
+  {
+    createdAt : Timestamp__301639476;
+    description : ?Text;
+    fileSize : Nat;
+    id : Nat;
+    mimeType : Text;
+    ownerId : UserId__158757552;
+    publishedAt : ?Timestamp__301639476;
+    status : VideoStatus__1027431841;
+    thumbnailAssetId : ?Text;
+    title : Text;
+    videoAssetId : Text
+  };
+type Video__229399347 =
+  {
+    createdAt : Timestamp__233582861;
+    description : ?Text;
+    fileSize : Nat;
+    id : Nat;
+    mimeType : Text;
+    ownerId : UserId__102032063;
+    publishedAt : ?Timestamp__233582861;
+    status : VideoStatus__107661496;
+    thumbnailAssetId : ?Text;
+    title : Text;
+    videoAssetId : Text
+  };
+{
+  "20260830_000000" : (_old : OldActor__792294613) -> NewActor__816907118
+}
+actor  {
+  stable accessControlState :
+    {
+      var adminAssigned : Bool;
+      userRoles : Map__386906547<Principal, UserRole__91647283>
+    };
+  stable counters :
+    {
+      var nextNotificationId : Nat;
+      var nextUploadSessionId : Nat;
+      var nextVideoId : Nat
+    };
+  stable notifications :
+    {
+      var root :
+        Node__430031793<UserId__158757552,
+                         List__89170296<Notification__264708741>>;
+      var size : Nat__58649523
+    };
+  stable storage : {var providers : [Text]};
+  stable subscribers :
+    {
+      var root :
+        Node__430031793<UserId__158757552, Set__195681557<UserId__158757552>>;
+      var size : Nat__58649523
+    };
+  stable subscriptions :
+    {
+      var root :
+        Node__430031793<UserId__158757552, Set__195681557<UserId__158757552>>;
+      var size : Nat__58649523
+    };
+  stable uploadSessions :
+    {
+      var root : Node__430031793<Nat, UploadSession__284063393>;
+      var size : Nat__58649523
+    };
+  stable usernames :
+    {
+      var root : Node__430031793<Text, UserId__158757552>;
+      var size : Nat__58649523
+    };
+  stable users :
+    {
+      var root : Node__430031793<UserId__158757552, User__98118558>;
+      var size : Nat__58649523
+    };
+  stable videos :
+    {
+      var root : Node__430031793<Nat, Video__1035008865>;
+      var size : Nat__58649523
+    }
+};
