@@ -71,11 +71,15 @@ export class UploadService {
    */
   private async streamFile(
     actor: Backend,
-    sessionId: bigint,
+    session: UploadSession,
     file: File,
     onProgress?: (percentage: number) => void,
   ): Promise<void> {
-    const chunkSize = config.uploadChunkSize;
+    const advertisedChunkSize = Number(session.chunkSize);
+    const chunkSize =
+      Number.isSafeInteger(advertisedChunkSize) && advertisedChunkSize > 0
+        ? Math.min(advertisedChunkSize, config.uploadChunkSize)
+        : config.uploadChunkSize;
     const totalChunks = Math.ceil(file.size / chunkSize);
     let uploadedBytes = 0;
 
@@ -83,12 +87,12 @@ export class UploadService {
       const start = index * chunkSize;
       const end = Math.min(start + chunkSize, file.size);
       const chunk = new Uint8Array(await file.slice(start, end).arrayBuffer());
-      await this.uploadChunkWithRetry(actor, sessionId, BigInt(index), chunk);
+      await this.uploadChunkWithRetry(actor, session.id, BigInt(index), chunk);
       uploadedBytes += chunk.length;
       onProgress?.(Math.round((uploadedBytes / file.size) * 100));
     }
 
-    await this.verifyUpload(actor, sessionId);
+    await this.verifyUpload(actor, session.id);
   }
 
   /** Uploads an optional thumbnail and returns its stored asset id. */
@@ -108,7 +112,7 @@ export class UploadService {
       BigInt(thumbnail.size),
       thumbnail.type,
     );
-    await this.streamFile(actor, session.id, thumbnail);
+    await this.streamFile(actor, session, thumbnail);
     return session.assetId;
   }
 
@@ -134,7 +138,7 @@ export class UploadService {
       file.type,
     );
 
-    await this.streamFile(actor, session.id, file, onProgress);
+    await this.streamFile(actor, session, file, onProgress);
     const thumbnailAssetId = await this.uploadThumbnail(actor, thumbnail);
     const draft = await this.finalizeMedia(
       actor,

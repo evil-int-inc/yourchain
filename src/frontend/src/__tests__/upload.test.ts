@@ -15,7 +15,7 @@ function makeSession(id: bigint, totalSize: bigint): UploadSession {
     receivedBytes: 0n,
     mimeType: "video/mp4",
     totalSize,
-    chunkSize: 4_194_304n,
+    chunkSize: 1_000_000n,
   };
 }
 
@@ -45,12 +45,11 @@ function makeFile(size: number, type = "video/mp4"): File {
   // slicing the file into chunks. Build a File-like object whose `slice`
   // returns a Blob-like with a working `arrayBuffer`.
   const bytes = new Uint8Array(size);
-  const blob = {
-    arrayBuffer: async () => bytes.buffer,
-  };
   const file = new File([bytes], "clip.mp4", { type });
   Object.defineProperty(file, "slice", {
-    value: () => blob,
+    value: (start = 0, end = size) => ({
+      arrayBuffer: async () => bytes.slice(start, end).buffer,
+    }),
   });
   return file;
 }
@@ -147,5 +146,29 @@ describe("uploadVideo", () => {
 
     expect(onProgress).toHaveBeenCalled();
     expect(onProgress).toHaveBeenLastCalledWith(100);
+  });
+
+  it("keeps every request below the backend's one-megabyte chunk limit", async () => {
+    const uploadedChunkSizes: number[] = [];
+    const actor = {
+      createUploadSession: vi.fn(async () => makeSession(7n, 2_100_000n)),
+      uploadChunk: vi.fn(async (_s: bigint, _i: bigint, data: Uint8Array) => {
+        uploadedChunkSizes.push(data.length);
+        return BigInt(data.length);
+      }),
+      verifyUpload: vi.fn(async () => undefined),
+      finalizeMedia: vi.fn(async () => makeDraft(1n, "My clip")),
+      publishVideo: vi.fn(async () => makePublished(1n, "My clip")),
+    } as unknown as Backend;
+
+    await uploadService.uploadVideo(
+      actor,
+      makeFile(2_100_000),
+      "My clip",
+      null,
+      null,
+    );
+
+    expect(uploadedChunkSizes).toEqual([1_000_000, 1_000_000, 100_000]);
   });
 });
