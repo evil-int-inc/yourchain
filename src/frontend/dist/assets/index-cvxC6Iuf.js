@@ -2459,7 +2459,7 @@ var IdlTypeName;
   IdlTypeName2["FuncClass"] = "__IDL_FuncClass__";
   IdlTypeName2["ServiceClass"] = "__IDL_ServiceClass__";
 })(IdlTypeName || (IdlTypeName = {}));
-class Type {
+let Type$1 = class Type {
   /* Display type name */
   display() {
     return this.name;
@@ -2473,8 +2473,8 @@ class Type {
       this._buildTypeTableImpl(typeTable);
     }
   }
-}
-class PrimitiveType extends Type {
+};
+class PrimitiveType extends Type$1 {
   checkType(t) {
     if (this.name !== t.name) {
       throw new Error(`type mismatch: type on the wire ${t.name}, expect type ${this.name}`);
@@ -2484,7 +2484,7 @@ class PrimitiveType extends Type {
   _buildTypeTableImpl(_typeTable) {
   }
 }
-class ConstructType extends Type {
+class ConstructType extends Type$1 {
   checkType(t) {
     if (t instanceof RecClass) {
       const ty = t.getType();
@@ -2528,7 +2528,7 @@ class EmptyClass extends PrimitiveType {
     return "empty";
   }
 }
-class UnknownClass extends Type {
+class UnknownClass extends Type$1 {
   get typeName() {
     return IdlTypeName.UnknownClass;
   }
@@ -4283,7 +4283,7 @@ const IDL = /* @__PURE__ */ Object.freeze(/* @__PURE__ */ Object.defineProperty(
   TextClass,
   Tuple,
   TupleClass,
-  Type,
+  Type: Type$1,
   Unknown,
   UnknownClass,
   Variant,
@@ -33225,6 +33225,7 @@ const Video = Record({
   "description": Opt(Text),
   "fileSize": Nat,
   "filename": Text,
+  "viewCount": Nat,
   "isPrivate": Bool
 });
 const Value = Variant({
@@ -33246,7 +33247,7 @@ const User$1 = Record({
   "username": Text,
   "displayName": Text,
   "createdAt": Timestamp,
-  "avatar": Opt(Text)
+  "avatar": Opt(ExternalBlob2)
 });
 const Cursor = Nat;
 const Page = Record({
@@ -33334,9 +33335,10 @@ Service({
   "isSubscribed": Func([UserId], [Bool], ["query"]),
   "markNotificationsRead": Func([], [], []),
   "publishVideo": Func([Nat], [Video], []),
+  "recordVideoView": Func([Nat], [Nat], []),
   "registerStorageProvider": Func([Text], [], []),
   "saveProfile": Func(
-    [Text, Text, Opt(Text), Opt(Text)],
+    [Text, Text, Opt(ExternalBlob2), Bool, Opt(Text)],
     [User$1],
     []
   ),
@@ -33405,6 +33407,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "description": IDL2.Opt(IDL2.Text),
     "fileSize": IDL2.Nat,
     "filename": IDL2.Text,
+    "viewCount": IDL2.Nat,
     "isPrivate": IDL2.Bool
   });
   const Value2 = IDL2.Variant({
@@ -33426,7 +33429,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "username": IDL2.Text,
     "displayName": IDL2.Text,
     "createdAt": Timestamp2,
-    "avatar": IDL2.Opt(IDL2.Text)
+    "avatar": IDL2.Opt(ExternalBlob3)
   });
   const Cursor2 = IDL2.Nat;
   const Page2 = IDL2.Record({
@@ -33514,9 +33517,16 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "isSubscribed": IDL2.Func([UserId2], [IDL2.Bool], ["query"]),
     "markNotificationsRead": IDL2.Func([], [], []),
     "publishVideo": IDL2.Func([IDL2.Nat], [Video2], []),
+    "recordVideoView": IDL2.Func([IDL2.Nat], [IDL2.Nat], []),
     "registerStorageProvider": IDL2.Func([IDL2.Text], [], []),
     "saveProfile": IDL2.Func(
-      [IDL2.Text, IDL2.Text, IDL2.Opt(IDL2.Text), IDL2.Opt(IDL2.Text)],
+      [
+        IDL2.Text,
+        IDL2.Text,
+        IDL2.Opt(ExternalBlob3),
+        IDL2.Bool,
+        IDL2.Opt(IDL2.Text)
+      ],
       [User2],
       []
     ),
@@ -33998,6 +34008,20 @@ class Backend {
       return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
     }
   }
+  async recordVideoView(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.recordVideoView(arg0);
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.recordVideoView(arg0);
+      return result;
+    }
+  }
   async registerStorageProvider(arg0) {
     if (this.processError) {
       try {
@@ -34012,17 +34036,17 @@ class Backend {
       return result;
     }
   }
-  async saveProfile(arg0, arg1, arg2, arg3) {
+  async saveProfile(arg0, arg1, arg2, arg3, arg4) {
     if (this.processError) {
       try {
-        const result = await this.actor.saveProfile(arg0, arg1, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n14(this._uploadFile, this._downloadFile, arg3));
+        const result = await this.actor.saveProfile(arg0, arg1, await to_candid_opt_n16(this._uploadFile, this._downloadFile, arg2), arg3, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg4));
         return from_candid_User_n34(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.saveProfile(arg0, arg1, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n14(this._uploadFile, this._downloadFile, arg3));
+      const result = await this.actor.saveProfile(arg0, arg1, await to_candid_opt_n16(this._uploadFile, this._downloadFile, arg2), arg3, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg4));
       return from_candid_User_n34(this._uploadFile, this._downloadFile, result);
     }
   }
@@ -34099,8 +34123,8 @@ function from_candid_Result_n25(_uploadFile, _downloadFile, value) {
 function from_candid_UserRole_n36(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n37(_uploadFile, _downloadFile, value);
 }
-function from_candid_User_n34(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n35(_uploadFile, _downloadFile, value);
+async function from_candid_User_n34(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n35(_uploadFile, _downloadFile, value);
 }
 function from_candid_Value_n31(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n32(_uploadFile, _downloadFile, value);
@@ -34123,8 +34147,8 @@ function from_candid_opt_n23(_uploadFile, _downloadFile, value) {
 function from_candid_opt_n24(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n33(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_User_n34(_uploadFile, _downloadFile, value[0]);
+async function from_candid_opt_n33(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : await from_candid_User_n34(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n41(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
@@ -34152,6 +34176,7 @@ async function from_candid_record_n18(_uploadFile, _downloadFile, value) {
     description: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.description)),
     fileSize: value.fileSize,
     filename: value.filename,
+    viewCount: value.viewCount,
     isPrivate: value.isPrivate
   };
 }
@@ -34167,14 +34192,14 @@ function from_candid_record_n30(_uploadFile, _downloadFile, value) {
     name: value.name
   };
 }
-function from_candid_record_n35(_uploadFile, _downloadFile, value) {
+async function from_candid_record_n35(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
     bio: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.bio)),
     username: value.username,
     displayName: value.displayName,
     createdAt: value.createdAt,
-    avatar: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.avatar))
+    avatar: record_opt_to_undefined(await from_candid_opt_n21(_uploadFile, _downloadFile, value.avatar))
   };
 }
 async function from_candid_record_n39(_uploadFile, _downloadFile, value) {
@@ -34386,6 +34411,8 @@ const config = {
   maxVideoSizeBytes: 1073741824,
   /** Maximum accepted thumbnail image size in bytes (20 MB). */
   maxThumbnailSizeBytes: 20971520,
+  /** Maximum accepted channel avatar size in bytes (5 MB). */
+  maxAvatarSizeBytes: 5242880,
   /** Number of videos requested per feed / pagination page. */
   feedPageSize: 12,
   /** Number of notifications requested per page. */
@@ -34396,6 +34423,8 @@ const config = {
   acceptedVideoMimeTypes: ["video/mp4", "video/webm", "video/quicktime"],
   /** Accepted thumbnail MIME types for upload. */
   acceptedThumbnailMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+  /** Accepted channel avatar MIME types. */
+  acceptedAvatarMimeTypes: ["image/jpeg", "image/png", "image/webp"],
   /** Maximum length of a video title. */
   maxTitleLength: 100,
   /** Maximum length of a video description. */
@@ -34575,7 +34604,19 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$r = [
+const __iconNode$x = [
+  ["path", { d: "M15 12H3", key: "6jk70r" }],
+  ["path", { d: "M17 18H3", key: "1amg6g" }],
+  ["path", { d: "M21 6H3", key: "1jwq7v" }]
+];
+const AlignLeft = createLucideIcon("align-left", __iconNode$x);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$w = [
   ["path", { d: "M10.268 21a2 2 0 0 0 3.464 0", key: "vwvbt9" }],
   [
     "path",
@@ -34587,14 +34628,14 @@ const __iconNode$r = [
   ["path", { d: "m2 2 20 20", key: "1ooewy" }],
   ["path", { d: "M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05", key: "1hqiys" }]
 ];
-const BellOff = createLucideIcon("bell-off", __iconNode$r);
+const BellOff = createLucideIcon("bell-off", __iconNode$w);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$q = [
+const __iconNode$v = [
   ["path", { d: "M10.268 21a2 2 0 0 0 3.464 0", key: "vwvbt9" }],
   [
     "path",
@@ -34604,56 +34645,56 @@ const __iconNode$q = [
     }
   ]
 ];
-const Bell = createLucideIcon("bell", __iconNode$q);
+const Bell = createLucideIcon("bell", __iconNode$v);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$p = [
+const __iconNode$u = [
   ["path", { d: "M18 6 7 17l-5-5", key: "116fxf" }],
   ["path", { d: "m22 10-7.5 7.5L13 16", key: "ke71qq" }]
 ];
-const CheckCheck = createLucideIcon("check-check", __iconNode$p);
+const CheckCheck = createLucideIcon("check-check", __iconNode$u);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$o = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$o);
+const __iconNode$t = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$t);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$n = [
+const __iconNode$s = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
   ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
 ];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$n);
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$s);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$m = [
+const __iconNode$r = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const CircleCheck = createLucideIcon("circle-check", __iconNode$m);
+const CircleCheck = createLucideIcon("circle-check", __iconNode$r);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$l = [
+const __iconNode$q = [
   [
     "path",
     { d: "M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z", key: "1tn4o7" }
@@ -34662,7 +34703,81 @@ const __iconNode$l = [
   ["path", { d: "m12.4 3.4 3.1 4", key: "6hsd6n" }],
   ["path", { d: "M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z", key: "ltgou9" }]
 ];
-const Clapperboard = createLucideIcon("clapperboard", __iconNode$l);
+const Clapperboard = createLucideIcon("clapperboard", __iconNode$q);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$p = [
+  ["path", { d: "M12 13v8", key: "1l5pq0" }],
+  ["path", { d: "M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242", key: "1pljnt" }],
+  ["path", { d: "m8 17 4-4 4 4", key: "1quai1" }]
+];
+const CloudUpload = createLucideIcon("cloud-upload", __iconNode$p);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$o = [
+  ["path", { d: "M12 15V3", key: "m9g1x1" }],
+  ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
+  ["path", { d: "m7 10 5 5 5-5", key: "brsn70" }]
+];
+const Download = createLucideIcon("download", __iconNode$o);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$n = [
+  [
+    "path",
+    {
+      d: "M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0",
+      key: "1nclc0"
+    }
+  ],
+  ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
+];
+const Eye = createLucideIcon("eye", __iconNode$n);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$m = [
+  [
+    "path",
+    {
+      d: "M10.3 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10l-3.1-3.1a2 2 0 0 0-2.814.014L6 21",
+      key: "9csbqa"
+    }
+  ],
+  ["path", { d: "m14 19 3 3v-5.5", key: "9ldu5r" }],
+  ["path", { d: "m17 22 3-3", key: "1nkfve" }],
+  ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }]
+];
+const ImageDown = createLucideIcon("image-down", __iconNode$m);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$l = [
+  ["path", { d: "M16 5h6", key: "1vod17" }],
+  ["path", { d: "M19 2v6", key: "4bpg5p" }],
+  ["path", { d: "M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5", key: "1ue2ih" }],
+  ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21", key: "1xmnt7" }],
+  ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }]
+];
+const ImagePlus = createLucideIcon("image-plus", __iconNode$l);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34670,32 +34785,6 @@ const Clapperboard = createLucideIcon("clapperboard", __iconNode$l);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$k = [
-  ["path", { d: "M12 13v8", key: "1l5pq0" }],
-  ["path", { d: "M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242", key: "1pljnt" }],
-  ["path", { d: "m8 17 4-4 4 4", key: "1quai1" }]
-];
-const CloudUpload = createLucideIcon("cloud-upload", __iconNode$k);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$j = [
-  ["path", { d: "M16 5h6", key: "1vod17" }],
-  ["path", { d: "M19 2v6", key: "4bpg5p" }],
-  ["path", { d: "M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5", key: "1ue2ih" }],
-  ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21", key: "1xmnt7" }],
-  ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }]
-];
-const ImagePlus = createLucideIcon("image-plus", __iconNode$j);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$i = [
   ["polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12", key: "o97t9d" }],
   [
     "path",
@@ -34705,15 +34794,39 @@ const __iconNode$i = [
     }
   ]
 ];
-const Inbox = createLucideIcon("inbox", __iconNode$i);
+const Inbox = createLucideIcon("inbox", __iconNode$k);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$h = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-const LoaderCircle = createLucideIcon("loader-circle", __iconNode$h);
+const __iconNode$j = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+const LoaderCircle = createLucideIcon("loader-circle", __iconNode$j);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$i = [
+  ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
+  ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
+  ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
+];
+const LockKeyhole = createLucideIcon("lock-keyhole", __iconNode$i);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$h = [
+  ["path", { d: "m10 17 5-5-5-5", key: "1bsop3" }],
+  ["path", { d: "M15 12H3", key: "6jk70r" }],
+  ["path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4", key: "u53s6r" }]
+];
+const LogIn = createLucideIcon("log-in", __iconNode$h);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34721,11 +34834,11 @@ const LoaderCircle = createLucideIcon("loader-circle", __iconNode$h);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$g = [
-  ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
-  ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
-  ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
+  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
+  ["path", { d: "M21 12H9", key: "dn1m92" }],
+  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
 ];
-const LockKeyhole = createLucideIcon("lock-keyhole", __iconNode$g);
+const LogOut = createLucideIcon("log-out", __iconNode$g);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34733,11 +34846,11 @@ const LockKeyhole = createLucideIcon("lock-keyhole", __iconNode$g);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$f = [
-  ["path", { d: "m10 17 5-5-5-5", key: "1bsop3" }],
-  ["path", { d: "M15 12H3", key: "6jk70r" }],
-  ["path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4", key: "u53s6r" }]
+  ["path", { d: "M4 12h16", key: "1lakjw" }],
+  ["path", { d: "M4 18h16", key: "19g7jn" }],
+  ["path", { d: "M4 6h16", key: "1o0s65" }]
 ];
-const LogIn = createLucideIcon("log-in", __iconNode$f);
+const Menu = createLucideIcon("menu", __iconNode$f);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34745,11 +34858,11 @@ const LogIn = createLucideIcon("log-in", __iconNode$f);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$e = [
-  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
-  ["path", { d: "M21 12H9", key: "dn1m92" }],
-  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
+  ["rect", { width: "20", height: "14", x: "2", y: "3", rx: "2", key: "48i651" }],
+  ["line", { x1: "8", x2: "16", y1: "21", y2: "21", key: "1svkeh" }],
+  ["line", { x1: "12", x2: "12", y1: "17", y2: "21", key: "vw1qmm" }]
 ];
-const LogOut = createLucideIcon("log-out", __iconNode$e);
+const Monitor = createLucideIcon("monitor", __iconNode$e);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34757,23 +34870,17 @@ const LogOut = createLucideIcon("log-out", __iconNode$e);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$d = [
-  ["path", { d: "M4 12h16", key: "1lakjw" }],
-  ["path", { d: "M4 18h16", key: "19g7jn" }],
-  ["path", { d: "M4 6h16", key: "1o0s65" }]
+  ["path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z", key: "a7tn18" }]
 ];
-const Menu = createLucideIcon("menu", __iconNode$d);
+const Moon = createLucideIcon("moon", __iconNode$d);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$c = [
-  ["rect", { width: "20", height: "14", x: "2", y: "3", rx: "2", key: "48i651" }],
-  ["line", { x1: "8", x2: "16", y1: "21", y2: "21", key: "1svkeh" }],
-  ["line", { x1: "12", x2: "12", y1: "17", y2: "21", key: "vw1qmm" }]
-];
-const Monitor = createLucideIcon("monitor", __iconNode$c);
+const __iconNode$c = [["polygon", { points: "6 3 20 12 6 21 6 3", key: "1oa8hb" }]];
+const Play = createLucideIcon("play", __iconNode$c);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34781,35 +34888,17 @@ const Monitor = createLucideIcon("monitor", __iconNode$c);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$b = [
-  ["path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z", key: "a7tn18" }]
-];
-const Moon = createLucideIcon("moon", __iconNode$b);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$a = [["polygon", { points: "6 3 20 12 6 21 6 3", key: "1oa8hb" }]];
-const Play = createLucideIcon("play", __iconNode$a);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$9 = [
   ["path", { d: "m21 21-4.34-4.34", key: "14j7rj" }],
   ["circle", { cx: "11", cy: "11", r: "8", key: "4ej97u" }]
 ];
-const Search = createLucideIcon("search", __iconNode$9);
+const Search = createLucideIcon("search", __iconNode$b);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$8 = [
+const __iconNode$a = [
   ["circle", { cx: "12", cy: "12", r: "4", key: "4exip2" }],
   ["path", { d: "M12 2v2", key: "tus03m" }],
   ["path", { d: "M12 20v2", key: "1lh1kg" }],
@@ -34820,14 +34909,28 @@ const __iconNode$8 = [
   ["path", { d: "m6.34 17.66-1.41 1.41", key: "1m8zz5" }],
   ["path", { d: "m19.07 4.93-1.41 1.41", key: "1shlcs" }]
 ];
-const Sun = createLucideIcon("sun", __iconNode$8);
+const Sun = createLucideIcon("sun", __iconNode$a);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$7 = [
+const __iconNode$9 = [
+  ["path", { d: "M3 6h18", key: "d0wm0j" }],
+  ["path", { d: "M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6", key: "4alrt4" }],
+  ["path", { d: "M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2", key: "v07s0e" }],
+  ["line", { x1: "10", x2: "10", y1: "11", y2: "17", key: "1uufr5" }],
+  ["line", { x1: "14", x2: "14", y1: "11", y2: "17", key: "xtxkd" }]
+];
+const Trash2 = createLucideIcon("trash-2", __iconNode$9);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$8 = [
   [
     "path",
     {
@@ -34838,7 +34941,19 @@ const __iconNode$7 = [
   ["path", { d: "M12 9v4", key: "juzpu7" }],
   ["path", { d: "M12 17h.01", key: "p32p05" }]
 ];
-const TriangleAlert = createLucideIcon("triangle-alert", __iconNode$7);
+const TriangleAlert = createLucideIcon("triangle-alert", __iconNode$8);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$7 = [
+  ["path", { d: "M12 4v16", key: "1654pz" }],
+  ["path", { d: "M4 7V5a1 1 0 0 1 1-1h14a1 1 0 0 1 1 1v2", key: "e0r10z" }],
+  ["path", { d: "M9 20h6", key: "s66wpe" }]
+];
+const Type2 = createLucideIcon("type", __iconNode$7);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -35068,101 +35183,131 @@ function NotificationBell() {
   const { unreadCount, notifications, notificationsLoading, markAllRead } = useNotifications();
   const count = Number(unreadCount);
   const hasUnread = count > 0;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dropdown dropdown-end", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "button",
-      {
-        type: "button",
-        "data-ocid": "notification_bell",
-        "aria-label": hasUnread ? `Notifications, ${count} unread` : "Notifications, no unread",
-        className: "btn btn-ghost btn-circle btn-sm relative",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Bell, { className: "size-5", "aria-hidden": "true" }),
-          hasUnread ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "span",
-            {
-              "data-ocid": "notification_badge",
-              className: "absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground",
-              children: count > 99 ? "99+" : count
-            }
-          ) : null
-        ]
+  const [isOpen, setIsOpen] = reactExports.useState(false);
+  const dropdownRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    if (!isOpen) return;
+    const closeOnOutsideClick = (event) => {
+      var _a2;
+      if (!((_a2 = dropdownRef.current) == null ? void 0 : _a2.contains(event.target))) {
+        setIsOpen(false);
       }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "div",
-      {
-        "data-ocid": "notification_dropdown",
-        className: "dropdown-content z-50 mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-box border border-border bg-popover shadow-elevated",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between border-b border-border px-4 py-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-sm font-semibold text-foreground", children: "Notifications" }),
-            hasUnread ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "button",
-              {
-                type: "button",
-                "data-ocid": "mark_all_read_button",
-                onClick: () => markAllRead.mutate(),
-                disabled: markAllRead.isPending,
-                className: "inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80 disabled:opacity-50",
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx(CheckCheck, { className: "size-3.5", "aria-hidden": "true" }),
-                  "Mark all read"
-                ]
-              }
-            ) : null
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-80 overflow-y-auto", children: notificationsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3 p-4", children: [0, 1, 2].map((i) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "size-8 shrink-0 animate-pulse rounded-full bg-muted" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 space-y-2", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-3 w-3/4 animate-pulse rounded bg-muted" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-2.5 w-1/3 animate-pulse rounded bg-muted" })
-            ] })
-          ] }, i)) }) : notifications.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              "data-ocid": "notification_empty_state",
-              className: "flex flex-col items-center gap-2 px-4 py-10 text-center",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  Bell,
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOnOutsideClick);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsideClick);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isOpen]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      ref: dropdownRef,
+      className: `dropdown dropdown-end ${isOpen ? "dropdown-open" : ""}`,
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            type: "button",
+            "data-ocid": "notification_bell",
+            "aria-label": hasUnread ? `Notifications, ${count} unread` : "Notifications, no unread",
+            className: "btn btn-ghost btn-circle btn-sm relative",
+            "aria-expanded": isOpen,
+            onClick: () => setIsOpen((open) => !open),
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Bell, { className: "size-5", "aria-hidden": "true" }),
+              hasUnread ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "span",
+                {
+                  "data-ocid": "notification_badge",
+                  className: "absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold leading-none text-primary-foreground",
+                  children: count > 99 ? "99+" : count
+                }
+              ) : null
+            ]
+          }
+        ),
+        isOpen ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            "data-ocid": "notification_dropdown",
+            "aria-label": "Notifications",
+            className: "dropdown-content z-50 mt-2 w-80 max-w-[calc(100vw-1rem)] rounded-box border border-border bg-popover shadow-elevated",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between border-b border-border px-4 py-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-sm font-semibold text-foreground", children: "Notifications" }),
+                hasUnread ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "button",
                   {
-                    className: "size-6 text-muted-foreground",
-                    "aria-hidden": "true"
+                    type: "button",
+                    "data-ocid": "mark_all_read_button",
+                    onClick: () => markAllRead.mutate(),
+                    disabled: markAllRead.isPending,
+                    className: "inline-flex items-center gap-1 text-xs font-medium text-primary transition-colors hover:text-primary/80 disabled:opacity-50",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(CheckCheck, { className: "size-3.5", "aria-hidden": "true" }),
+                      "Mark all read"
+                    ]
                   }
-                ),
-                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground", children: "No notifications yet" })
-              ]
-            }
-          ) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "divide-y divide-border", children: notifications.map((notification) => {
-            const date = timestampToDate(notification.createdAt);
-            return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-              "li",
-              {
-                "data-ocid": "notification_item",
-                className: `flex items-start gap-3 px-4 py-3 ${notification.read ? "" : "bg-primary/5"}`,
-                children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted", children: /* @__PURE__ */ jsxRuntimeExports.jsx(NotificationIcon, { notification }) }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm leading-snug text-foreground", children: notificationLabel(notification) }),
-                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-0.5 text-xs text-muted-foreground", children: timeAgo(date) })
-                  ] }),
-                  !notification.read ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-                    "span",
-                    {
-                      className: "mt-1.5 size-2 shrink-0 rounded-full bg-primary",
-                      "aria-label": "Unread"
-                    }
-                  ) : null
-                ]
-              },
-              notification.id.toString()
-            );
-          }) }) })
-        ]
-      }
-    )
-  ] });
+                ) : null
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-80 overflow-y-auto", children: notificationsLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-3 p-4", children: [0, 1, 2].map((i) => /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "size-8 shrink-0 animate-pulse rounded-full bg-muted" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 space-y-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-3 w-3/4 animate-pulse rounded bg-muted" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-2.5 w-1/3 animate-pulse rounded bg-muted" })
+                ] })
+              ] }, i)) }) : notifications.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  "data-ocid": "notification_empty_state",
+                  className: "flex flex-col items-center gap-2 px-4 py-10 text-center",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Bell,
+                      {
+                        className: "size-6 text-muted-foreground",
+                        "aria-hidden": "true"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-muted-foreground", children: "No notifications yet" })
+                  ]
+                }
+              ) : /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "divide-y divide-border", children: notifications.map((notification) => {
+                const date = timestampToDate(notification.createdAt);
+                return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "li",
+                  {
+                    "data-ocid": "notification_item",
+                    className: `flex items-start gap-3 px-4 py-3 ${notification.read ? "" : "bg-primary/5"}`,
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-muted", children: /* @__PURE__ */ jsxRuntimeExports.jsx(NotificationIcon, { notification }) }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm leading-snug text-foreground", children: notificationLabel(notification) }),
+                        /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-0.5 text-xs text-muted-foreground", children: timeAgo(date) })
+                      ] }),
+                      !notification.read ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "span",
+                        {
+                          className: "mt-1.5 size-2 shrink-0 rounded-full bg-primary",
+                          "aria-label": "Unread"
+                        }
+                      ) : null
+                    ]
+                  },
+                  notification.id.toString()
+                );
+              }) }) })
+            ]
+          }
+        ) : null
+      ]
+    }
+  );
 }
 function r(e) {
   var t, f2, n = "";
@@ -42989,6 +43134,7 @@ const themeOptions = [
   { choice: "black", label: "Dark", icon: Moon }
 ];
 function Header({ onOpenSidebar }) {
+  var _a2;
   const { isAuthenticated, isInitializing, login, logout, profile } = useAuth();
   const { theme, themeChoice, setThemeChoice } = useTheme();
   const navigate = useNavigate();
@@ -43001,6 +43147,7 @@ function Header({ onOpenSidebar }) {
     setQuery("");
   }
   const displayName = (profile == null ? void 0 : profile.displayName) ?? (profile == null ? void 0 : profile.username) ?? "Your channel";
+  const avatarUrl = (_a2 = profile == null ? void 0 : profile.avatar) == null ? void 0 : _a2.getDirectURL();
   const ThemeIcon = themeChoice === "system" ? Monitor : theme === "black" ? Moon : Sun;
   const searchForm = /* @__PURE__ */ jsxRuntimeExports.jsx("form", { onSubmit: submitSearch, className: "w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "input input-bordered flex w-full items-center gap-2 rounded-full bg-base-200", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(Search, { className: "size-4 shrink-0 opacity-60", "aria-hidden": "true" }),
@@ -43056,7 +43203,15 @@ function Header({ onOpenSidebar }) {
               className: "hidden min-w-0 items-center gap-2 lg:flex",
               "data-ocid": "layout.user_identity",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx(Avatar, { name: displayName, alt: displayName, size: "sm" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Avatar,
+                  {
+                    src: avatarUrl,
+                    name: displayName,
+                    alt: displayName,
+                    size: "sm"
+                  }
+                ),
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "max-w-40 truncate text-sm font-medium", children: displayName })
               ]
             }
@@ -43127,7 +43282,15 @@ function Header({ onOpenSidebar }) {
                 "data-ocid": "avatar_menu_button",
                 "aria-label": "Account menu",
                 className: "btn btn-ghost btn-circle",
-                children: /* @__PURE__ */ jsxRuntimeExports.jsx(Avatar, { name: displayName, alt: displayName, size: "sm" })
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Avatar,
+                  {
+                    src: avatarUrl,
+                    name: displayName,
+                    alt: displayName,
+                    size: "sm"
+                  }
+                )
               }
             ),
             /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -43231,7 +43394,7 @@ function Sidebar({ onNavigate }) {
     "aside",
     {
       "data-ocid": "sidebar",
-      className: "flex min-h-full w-64 flex-col border-r border-base-300 bg-base-100",
+      className: "flex h-svh min-h-0 w-64 flex-col overflow-hidden border-r border-base-300 bg-base-100",
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-16 items-center justify-between border-b border-base-300 px-4", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -43262,7 +43425,7 @@ function Sidebar({ onNavigate }) {
             }
           )
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "flex-1 p-3", "aria-label": "Primary", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "menu menu-lg w-full gap-1 p-0", children: navItems.map((item) => {
+        /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "min-h-0 flex-1 overflow-y-auto p-3", "aria-label": "Primary", children: /* @__PURE__ */ jsxRuntimeExports.jsx("ul", { className: "menu menu-lg w-full gap-1 p-0", children: navItems.map((item) => {
           const active = isActive(pathname, item.match);
           const Icon2 = item.icon;
           return /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -43361,18 +43524,25 @@ function MainLayout() {
         )
       ] }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "drawer-side z-40", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          type: "button",
-          "aria-label": "Close sidebar",
-          className: "drawer-overlay",
-          onClick: () => setDrawerOpen(false)
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, { onNavigate: () => setDrawerOpen(false) })
-    ] })
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "div",
+      {
+        className: "drawer-side z-40",
+        style: { overflowX: "hidden", overflowY: "hidden" },
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              "aria-label": "Close sidebar",
+              className: "drawer-overlay",
+              onClick: () => setDrawerOpen(false)
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, { onNavigate: () => setDrawerOpen(false) })
+        ]
+      }
+    )
   ] });
 }
 function InfiniteScrollSentinel({
@@ -43683,6 +43853,158 @@ function Skeleton({
     }
   );
 }
+class MediaActionService {
+  download(url, filename) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = filename;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  }
+  async copyText(value) {
+    var _a2;
+    if ((_a2 = navigator.clipboard) == null ? void 0 : _a2.writeText) {
+      await navigator.clipboard.writeText(value);
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = value;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    if (!copied) throw new Error("Copy is not supported by this browser");
+  }
+}
+const mediaActionService = new MediaActionService();
+function VideoActions({
+  video,
+  compact = false,
+  className
+}) {
+  var _a2;
+  const [copiedField, setCopiedField] = reactExports.useState(null);
+  const resetTimerRef = reactExports.useRef(null);
+  const videoUrl = video.video.getDirectURL();
+  const previewUrl = ((_a2 = video.thumbnail) == null ? void 0 : _a2.getDirectURL()) ?? null;
+  reactExports.useEffect(
+    () => () => {
+      if (resetTimerRef.current !== null) {
+        window.clearTimeout(resetTimerRef.current);
+      }
+    },
+    []
+  );
+  const copy = async (field, value) => {
+    await mediaActionService.copyText(value);
+    setCopiedField(field);
+    if (resetTimerRef.current !== null) {
+      window.clearTimeout(resetTimerRef.current);
+    }
+    resetTimerRef.current = window.setTimeout(() => setCopiedField(null), 1600);
+  };
+  const iconClass = compact ? "size-3.5" : "size-4";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      "data-ocid": "video_actions",
+      className: cn("flex items-center gap-1", className),
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "tooltip tooltip-top", "data-tip": "Download video", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          Button,
+          {
+            variant: "ghost",
+            size: "icon",
+            className: compact ? "btn-xs" : void 0,
+            "aria-label": "Download video",
+            "data-ocid": "download_video_button",
+            onClick: () => mediaActionService.download(videoUrl, video.filename),
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(Download, { className: iconClass, "aria-hidden": "true" })
+          }
+        ) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "tooltip tooltip-top",
+            "data-tip": previewUrl ? "Download preview" : "No preview available",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                variant: "ghost",
+                size: "icon",
+                className: compact ? "btn-xs" : void 0,
+                "aria-label": "Download video preview",
+                "data-ocid": "download_preview_button",
+                disabled: !previewUrl,
+                onClick: () => {
+                  var _a3;
+                  if (previewUrl) {
+                    mediaActionService.download(
+                      previewUrl,
+                      ((_a3 = video.thumbnail) == null ? void 0 : _a3.filename) ?? `${video.filename}-preview`
+                    );
+                  }
+                },
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(ImageDown, { className: iconClass, "aria-hidden": "true" })
+              }
+            )
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "tooltip tooltip-top",
+            "data-tip": copiedField === "title" ? "Title copied" : "Copy title",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                variant: "ghost",
+                size: "icon",
+                className: compact ? "btn-xs" : void 0,
+                "aria-label": "Copy video title",
+                "data-ocid": "copy_title_button",
+                onClick: () => void copy("title", video.title).catch(() => void 0),
+                children: copiedField === "title" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: iconClass, "aria-hidden": "true" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(Type2, { className: iconClass, "aria-hidden": "true" })
+              }
+            )
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            className: "tooltip tooltip-top",
+            "data-tip": !video.description ? "No description available" : copiedField === "description" ? "Description copied" : "Copy description",
+            children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              Button,
+              {
+                variant: "ghost",
+                size: "icon",
+                className: compact ? "btn-xs" : void 0,
+                "aria-label": "Copy video description",
+                "data-ocid": "copy_description_button",
+                disabled: !video.description,
+                onClick: () => {
+                  if (video.description) {
+                    void copy("description", video.description).catch(
+                      () => void 0
+                    );
+                  }
+                },
+                children: copiedField === "description" ? /* @__PURE__ */ jsxRuntimeExports.jsx(Check, { className: iconClass, "aria-hidden": "true" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(AlignLeft, { className: iconClass, "aria-hidden": "true" })
+              }
+            )
+          }
+        )
+      ]
+    }
+  );
+}
 class UserService {
   /** Fetches a channel by its principal id. */
   getChannel(actor, userId) {
@@ -43698,8 +44020,14 @@ class UserService {
       input.displayName,
       input.username,
       input.avatar,
+      input.removeAvatar,
       input.bio
     );
+  }
+  /** Wraps a selected avatar so generated bindings upload it to object storage. */
+  async createAvatar(file) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    return ExternalBlob$1.fromBytes(bytes, file.type, file.name);
   }
 }
 const userService = new UserService();
@@ -43724,12 +44052,12 @@ function VideoCard({
   const thumbnailUrl = ((_a2 = video.thumbnail) == null ? void 0 : _a2.getDirectURL()) ?? null;
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
   const relativeTime = timeAgo(publishedDate);
-  const views = viewCount !== void 0 ? formatCount(viewCount) : "—";
+  const views = formatCount(viewCount ?? video.viewCount);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "article",
     {
       "data-ocid": "video_card",
-      className: "group flex flex-col overflow-hidden rounded-box border border-border bg-card transition-smooth hover:shadow-elevated",
+      className: "group flex flex-col rounded-box border border-border bg-card transition-smooth hover:shadow-elevated",
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
           Link,
@@ -43738,7 +44066,7 @@ function VideoCard({
             params: { videoId: video.id.toString() },
             "data-ocid": "video_thumbnail_link",
             "aria-label": `Watch ${video.title}`,
-            className: "relative block aspect-video overflow-hidden bg-muted",
+            className: "relative block aspect-video overflow-hidden rounded-t-box bg-muted",
             children: [
               thumbnailUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "img",
@@ -43806,14 +44134,15 @@ function VideoCard({
               children: "Anonymous"
             }
           ),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { "data-ocid": "video_views", className: "text-xs text-muted-foreground", children: [
             views,
             " views",
             relativeTime ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", className: "mx-1", children: "·" }),
               relativeTime
             ] }) : null
-          ] })
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(VideoActions, { video, compact: true, className: "mt-auto pt-1" })
         ] })
       ]
     }
@@ -43923,24 +44252,6 @@ function useInfiniteVideos({
   }, []);
   return { items, hasMore, loadMore, reset, isLoading, error, sentinelRef };
 }
-class StorageService {
-  async getDirectURL(assetId, identity) {
-    const config2 = await loadConfig();
-    const agent = new HttpAgent({
-      identity,
-      host: config2.backend_host
-    });
-    const client2 = new StorageClient(
-      config2.bucket_name,
-      config2.storage_gateway_url,
-      config2.backend_canister_id,
-      config2.project_id,
-      agent
-    );
-    return client2.getDirectURL(assetId);
-  }
-}
-const storageService = new StorageService();
 class VideoService {
   /** Fetches a cursor-paginated page of the global feed. */
   async getFeed(actor, cursor, limit) {
@@ -43961,6 +44272,10 @@ class VideoService {
   /** Fetches a single video by id. */
   getVideo(actor, videoId) {
     return actor.getVideo(videoId);
+  }
+  /** Records the first playback and returns the durable view count. */
+  recordVideoView(actor, videoId) {
+    return actor.recordVideoView(videoId);
   }
   /** Deletes a video owned by the caller. */
   deleteVideo(actor, videoId) {
@@ -44019,6 +44334,7 @@ function ChannelVideosSkeleton() {
   );
 }
 function ChannelPage() {
+  var _a2;
   const { userId } = useParams({ from: "/channel/$userId" });
   const channelPrincipal = Principal$1.fromText(userId);
   const { actor, isFetching } = useActor(createActor);
@@ -44033,23 +44349,7 @@ function ChannelPage() {
     enabled: !!actor && !isFetching
   });
   const channel = channelQuery.data;
-  const [avatarUrl, setAvatarUrl] = reactExports.useState(null);
-  reactExports.useEffect(() => {
-    let cancelled = false;
-    if (!(channel == null ? void 0 : channel.avatar)) {
-      setAvatarUrl(null);
-      return;
-    }
-    setAvatarUrl(null);
-    void storageService.getDirectURL(channel.avatar).then((url) => {
-      if (!cancelled) setAvatarUrl(url);
-    }).catch(() => {
-      if (!cancelled) setAvatarUrl(null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [channel == null ? void 0 : channel.avatar]);
+  const avatarUrl = ((_a2 = channel == null ? void 0 : channel.avatar) == null ? void 0 : _a2.getDirectURL()) ?? null;
   const fetcher = reactExports.useCallback(
     (cursor, limit) => {
       if (!actor) return Promise.resolve({ items: [] });
@@ -44328,6 +44628,15 @@ function ProfileSkeleton() {
     }
   );
 }
+function validateAvatar(file) {
+  if (file.size > config.maxAvatarSizeBytes) {
+    return `Avatar exceeds the ${formatBytes(config.maxAvatarSizeBytes)} limit.`;
+  }
+  if (!config.acceptedAvatarMimeTypes.includes(file.type)) {
+    return "Unsupported image format. Use JPEG, PNG, or WebP.";
+  }
+  return void 0;
+}
 function ProfilePage() {
   const { actor, isFetching } = useActor(createActor);
   const queryClient2 = useQueryClient();
@@ -44336,19 +44645,31 @@ function ProfilePage() {
   const [displayName, setDisplayName] = reactExports.useState("");
   const [username, setUsername] = reactExports.useState("");
   const [bio, setBio] = reactExports.useState("");
-  const [avatar, setAvatar] = reactExports.useState("");
+  const [avatarFile, setAvatarFile] = reactExports.useState(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = reactExports.useState(null);
+  const [avatarError, setAvatarError] = reactExports.useState(null);
+  const [removeAvatar, setRemoveAvatar] = reactExports.useState(false);
   const [usernameTaken, setUsernameTaken] = reactExports.useState(false);
   const [usernameChecking, setUsernameChecking] = reactExports.useState(false);
   const [saved, setSaved] = reactExports.useState(false);
   const initializedRef = reactExports.useRef(false);
+  const avatarInputRef = reactExports.useRef(null);
   reactExports.useEffect(() => {
     if (initializedRef.current || !profile) return;
     initializedRef.current = true;
     setDisplayName(profile.displayName);
     setUsername(profile.username);
     setBio(profile.bio ?? "");
-    setAvatar(profile.avatar ?? "");
   }, [profile]);
+  reactExports.useEffect(() => {
+    if (!avatarFile || typeof URL.createObjectURL !== "function") {
+      setAvatarPreviewUrl(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [avatarFile]);
   reactExports.useEffect(() => {
     const trimmed = username.trim();
     if (!actor || !trimmed || trimmed.length > config.maxUsernameLength) {
@@ -44373,23 +44694,31 @@ function ProfilePage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Backend is not ready");
+      const uploadedAvatar = avatarFile ? await userService.createAvatar(avatarFile) : null;
       return userService.saveProfile(actor, {
         displayName: displayName.trim(),
         username: username.trim(),
-        avatar: avatar.trim() || null,
+        avatar: uploadedAvatar,
+        removeAvatar,
         bio: bio.trim() || null
       });
     },
-    onSuccess: () => {
+    onSuccess: (savedProfile) => {
       setSaved(true);
+      setAvatarFile(null);
+      setRemoveAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      queryClient2.setQueryData(["profile"], savedProfile);
       void queryClient2.invalidateQueries({ queryKey: ["profile"] });
     }
   });
   const displayNameValid = displayName.trim().length > 0 && displayName.trim().length <= config.maxDisplayNameLength;
   const usernameValid = username.trim().length > 0 && username.trim().length <= config.maxUsernameLength && !usernameTaken;
   const bioValid = bio.length <= config.maxBioLength;
-  const canSave = displayNameValid && usernameValid && bioValid && !saveMutation.isPending;
+  const canSave = displayNameValid && usernameValid && bioValid && !avatarError && !saveMutation.isPending;
   const memberSince = formatDate(timestampToDate((profile == null ? void 0 : profile.createdAt) ?? 0n));
+  const storedAvatarUrl = !removeAvatar && (profile == null ? void 0 : profile.avatar) ? profile.avatar.getDirectURL() : void 0;
+  const displayedAvatarUrl = avatarPreviewUrl ?? storedAvatarUrl;
   if (profileQuery.isLoading || isFetching && !profileQuery.data) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 sm:p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ProfileSkeleton, {}) });
   }
@@ -44409,10 +44738,11 @@ function ProfilePage() {
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         Avatar,
         {
-          src: avatar || void 0,
+          src: displayedAvatarUrl,
           name: displayName || void 0,
           size: "xl",
-          alt: "Your channel avatar"
+          alt: "Your channel avatar",
+          className: "size-20"
         }
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
@@ -44529,18 +44859,93 @@ function ProfilePage() {
               " characters"
             ] })
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Input,
-            {
-              id: "avatar",
-              "data-ocid": "avatar_input",
-              label: "Avatar URL",
-              value: avatar,
-              onChange: (event) => setAvatar(event.target.value),
-              placeholder: "https://…",
-              hint: "Optional link to your avatar image."
-            }
-          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-sm font-medium text-foreground", children: "Channel avatar" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-4 rounded-box border border-border bg-base-100 p-4 sm:flex-row sm:items-center", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Avatar,
+                {
+                  src: displayedAvatarUrl,
+                  name: displayName || void 0,
+                  size: "xl",
+                  alt: "Channel avatar preview",
+                  className: "size-20"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1 space-y-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "input",
+                  {
+                    ref: avatarInputRef,
+                    id: "avatar",
+                    type: "file",
+                    accept: config.acceptedAvatarMimeTypes.join(","),
+                    "data-ocid": "avatar_input",
+                    className: "hidden",
+                    onChange: (event) => {
+                      var _a2;
+                      const file = (_a2 = event.target.files) == null ? void 0 : _a2[0];
+                      if (!file) return;
+                      const error = validateAvatar(file);
+                      setAvatarError(error ?? null);
+                      if (!error) {
+                        setAvatarFile(file);
+                        setRemoveAvatar(false);
+                        setSaved(false);
+                      }
+                    }
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap gap-2", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    Button,
+                    {
+                      variant: "outline",
+                      size: "sm",
+                      "data-ocid": "avatar_upload_button",
+                      onClick: () => {
+                        var _a2;
+                        return (_a2 = avatarInputRef.current) == null ? void 0 : _a2.click();
+                      },
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(ImagePlus, { className: "size-4", "aria-hidden": "true" }),
+                        "Upload image"
+                      ]
+                    }
+                  ),
+                  displayedAvatarUrl ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                    Button,
+                    {
+                      variant: "ghost",
+                      size: "sm",
+                      "data-ocid": "avatar_remove_button",
+                      onClick: () => {
+                        setAvatarFile(null);
+                        setRemoveAvatar(true);
+                        setAvatarError(null);
+                        setSaved(false);
+                        if (avatarInputRef.current) {
+                          avatarInputRef.current.value = "";
+                        }
+                      },
+                      children: [
+                        /* @__PURE__ */ jsxRuntimeExports.jsx(Trash2, { className: "size-4", "aria-hidden": "true" }),
+                        "Remove"
+                      ]
+                    }
+                  ) : null
+                ] }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-sm text-muted-foreground", children: [
+                  "JPEG, PNG, or WebP up to",
+                  " ",
+                  formatBytes(config.maxAvatarSizeBytes),
+                  "."
+                ] }),
+                avatarFile ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "truncate text-sm text-foreground", children: avatarFile.name }) : null
+              ] })
+            ] }),
+            avatarError ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { "data-ocid": "avatar_error", className: "text-sm text-error", children: avatarError }) : null
+          ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-end gap-3 pt-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
             Button,
             {
@@ -45287,31 +45692,42 @@ function UploadPage() {
     ) : /* @__PURE__ */ jsxRuntimeExports.jsx(UploadForm, { onSubmit: handleSubmit, disabled: isUploading })
   ] });
 }
-function VideoPlayer({ video, poster }) {
+function VideoPlayer({ video, poster, onPlay }) {
   var _a2;
   const src = video.video.getDirectURL();
   const posterUrl = poster ?? ((_a2 = video.thumbnail) == null ? void 0 : _a2.getDirectURL());
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+  const [isReady, setIsReady] = reactExports.useState(false);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
       "data-ocid": "video_player",
-      className: "aspect-video w-full overflow-hidden rounded-box border border-border bg-black shadow-elevated",
-      children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "video",
-        {
-          "data-ocid": "video_element",
-          src,
-          controls: true,
-          preload: "metadata",
-          poster: posterUrl,
-          title: video.title,
-          className: "size-full object-contain",
-          children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("track", { kind: "captions", label: "Captions" }),
-            "Your browser does not support the video tag."
-          ]
-        }
-      )
+      className: "relative aspect-video w-full overflow-hidden rounded-box border border-border bg-black shadow-elevated",
+      children: [
+        !isReady ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "absolute inset-0 z-10 flex items-center justify-center bg-black/70", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Loader, { size: "lg", label: "Loading video…", className: "text-white" }) }) : null,
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "video",
+          {
+            "data-ocid": "video_element",
+            src,
+            controls: true,
+            autoPlay: true,
+            muted: true,
+            playsInline: true,
+            preload: "metadata",
+            poster: posterUrl,
+            title: video.title,
+            className: "size-full object-contain",
+            onCanPlay: () => setIsReady(true),
+            onLoadedData: () => setIsReady(true),
+            onError: () => setIsReady(true),
+            onPlay,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("track", { kind: "captions", label: "Captions" }),
+              "Your browser does not support the video tag."
+            ]
+          }
+        )
+      ]
     }
   );
 }
@@ -45338,16 +45754,33 @@ function useGetChannel(ownerId) {
   });
 }
 function WatchPage() {
+  var _a2;
   const { videoId } = useParams({ from: "/watch/$videoId" });
   const { principal } = useAuth();
+  const { actor } = useActor(createActor);
+  const queryClient2 = useQueryClient();
+  const recordedViewRef = reactExports.useRef(null);
   const parsedId = /^\d+$/.test(videoId) ? BigInt(videoId) : null;
-  const videoQuery = useGetVideo(parsedId ?? 0n, principal ?? "anonymous");
+  const viewerKey = principal ?? "anonymous";
+  const videoQuery = useGetVideo(parsedId ?? 0n, viewerKey);
   const video = videoQuery.data ?? null;
   const ownerId = (video == null ? void 0 : video.ownerId) ?? null;
   const channelQuery = useGetChannel(ownerId);
   const channel = channelQuery.data ?? null;
   const isLoading = videoQuery.isLoading || !!video && channelQuery.isLoading;
   const isOwnChannel = !!principal && !!ownerId && principal === ownerId.toString();
+  const recordFirstPlay = reactExports.useCallback(() => {
+    if (!actor || !video) return;
+    const id = video.id.toString();
+    if (recordedViewRef.current === id) return;
+    recordedViewRef.current = id;
+    void videoService.recordVideoView(actor, video.id).then((viewCount) => {
+      queryClient2.setQueryData(
+        ["video", id, viewerKey],
+        (current) => current ? { ...current, viewCount } : current
+      );
+    }).catch(() => void 0);
+  }, [actor, queryClient2, video, viewerKey]);
   if (videoQuery.isError) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 sm:p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
       ErrorState,
@@ -45387,7 +45820,14 @@ function WatchPage() {
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
   const channelName = (channel == null ? void 0 : channel.displayName) ?? (channel == null ? void 0 : channel.username) ?? "Anonymous";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mx-auto max-w-5xl p-4 sm:p-6", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(VideoPlayer, { video }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      VideoPlayer,
+      {
+        video,
+        onPlay: recordFirstPlay
+      },
+      video.id.toString()
+    ),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "h1",
@@ -45397,17 +45837,26 @@ function WatchPage() {
           children: video.title
         }
       ),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_size", children: formatBytes(video.fileSize) }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_date", children: timeAgo(publishedDate) }),
-        video.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1 flex flex-wrap items-center justify-between gap-2", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1", "data-ocid": "video_views", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "size-3.5", "aria-hidden": "true" }),
+            formatCount(video.viewCount),
+            " views"
+          ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-info", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(LockKeyhole, { className: "size-3.5", "aria-hidden": "true" }),
-            "Private"
-          ] })
-        ] }) : null
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_size", children: formatBytes(video.fileSize) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_date", children: timeAgo(publishedDate) }),
+          video.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-info", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(LockKeyhole, { className: "size-3.5", "aria-hidden": "true" }),
+              "Private"
+            ] })
+          ] }) : null
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(VideoActions, { video })
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 flex flex-col gap-4 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between", children: [
         channel ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
@@ -45418,7 +45867,14 @@ function WatchPage() {
             "data-ocid": "channel_link",
             className: "group flex min-w-0 items-center gap-3",
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Avatar, { name: channelName, size: "md" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                Avatar,
+                {
+                  src: (_a2 = channel.avatar) == null ? void 0 : _a2.getDirectURL(),
+                  name: channelName,
+                  size: "md"
+                }
+              ),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "min-w-0", children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block truncate text-sm font-medium text-foreground group-hover:text-primary", children: channelName }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "block truncate text-xs text-muted-foreground", children: [
