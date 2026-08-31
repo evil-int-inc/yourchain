@@ -2774,6 +2774,11 @@
       padding-inline: 1.5rem;
     }
 
+    .checkbox-info {
+      color: var(--color-info-content);
+      --input-color: var(--color-info);
+    }
+
     @media (hover: hover) {
       .link-primary:hover {
         color: var(--color-primary);
@@ -3052,6 +3057,10 @@
     position: relative;
   }
 
+  .static {
+    position: static;
+  }
+
   .sticky {
     position: sticky;
   }
@@ -3072,6 +3081,10 @@
     top: 0;
   }
 
+  .top-2 {
+    top: calc(var(--spacing) * 2);
+  }
+
   .-right-0\.5 {
     right: calc(var(--spacing) * -.5);
   }
@@ -3088,6 +3101,10 @@
     bottom: calc(var(--spacing) * 2);
   }
 
+  .left-2 {
+    left: calc(var(--spacing) * 2);
+  }
+
   .z-30 {
     z-index: 30;
   }
@@ -3098,6 +3115,40 @@
 
   .z-50 {
     z-index: 50;
+  }
+
+  .container {
+    width: 100%;
+  }
+
+  @media (min-width: 40rem) {
+    .container {
+      max-width: 40rem;
+    }
+  }
+
+  @media (min-width: 48rem) {
+    .container {
+      max-width: 48rem;
+    }
+  }
+
+  @media (min-width: 64rem) {
+    .container {
+      max-width: 64rem;
+    }
+  }
+
+  @media (min-width: 80rem) {
+    .container {
+      max-width: 80rem;
+    }
+  }
+
+  @media (min-width: 96rem) {
+    .container {
+      max-width: 96rem;
+    }
   }
 
   .mx-1 {
@@ -3192,6 +3243,11 @@
   .size-2 {
     width: calc(var(--spacing) * 2);
     height: calc(var(--spacing) * 2);
+  }
+
+  .size-3 {
+    width: calc(var(--spacing) * 3);
+    height: calc(var(--spacing) * 3);
   }
 
   .size-3\.5 {
@@ -3434,6 +3490,10 @@
 
   .animate-spin {
     animation: var(--animate-spin);
+  }
+
+  .cursor-pointer {
+    cursor: pointer;
   }
 
   .resize {
@@ -3823,6 +3883,10 @@
     padding-inline: calc(var(--spacing) * 1.5);
   }
 
+  .px-2 {
+    padding-inline: calc(var(--spacing) * 2);
+  }
+
   .px-3 {
     padding-inline: calc(var(--spacing) * 3);
   }
@@ -3837,6 +3901,10 @@
 
   .py-0\.5 {
     padding-block: calc(var(--spacing) * .5);
+  }
+
+  .py-1 {
+    padding-block: var(--spacing);
   }
 
   .py-2 {

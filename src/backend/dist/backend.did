@@ -1,4 +1,4 @@
-type _ImmutableObjectStorageRefillResult =
+type _ImmutableObjectStorageRefillResult = 
  record {
    success: opt bool;
    topped_up_amount: opt nat;
@@ -6,7 +6,7 @@ type _ImmutableObjectStorageRefillResult =
 type _ImmutableObjectStorageRefillInformation = record {
                                                   proposed_top_up_amount:
                                                    opt nat;};
-type _ImmutableObjectStorageCreateCertificateResult =
+type _ImmutableObjectStorageCreateCertificateResult = 
  record {
    blob_hash: text;
    method: text;

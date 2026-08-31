@@ -95,7 +95,7 @@ reactJsxRuntime_production.jsxs = jsxProd;
   jsxRuntime.exports = reactJsxRuntime_production;
 }
 var jsxRuntimeExports = jsxRuntime.exports;
-class ExternalBlob {
+let ExternalBlob$1 = class ExternalBlob {
   constructor(directURL, blob) {
     __publicField(this, "_blob");
     __publicField(this, "directURL");
@@ -139,7 +139,7 @@ class ExternalBlob {
     this.onProgress = onProgress;
     return this;
   }
-}
+};
 var ReplicaRejectCode;
 (function(ReplicaRejectCode2) {
   ReplicaRejectCode2[ReplicaRejectCode2["SysFatal"] = 1] = "SysFatal";
@@ -16050,7 +16050,7 @@ async function createActorWithConfig(createActor2, options) {
     const hashWithPrefix = new TextDecoder().decode(new Uint8Array(bytes));
     const hash = hashWithPrefix.substring(MOTOKO_DEDUPLICATION_SENTINEL.length);
     const url = await storageClient.getDirectURL(hash);
-    return ExternalBlob.fromURL(url);
+    return ExternalBlob$1.fromURL(url);
   };
   return createActor2(config2.backend_canister_id, uploadFile, downloadFile, actorOptions);
 }
@@ -33165,6 +33165,17 @@ function checkDCE() {
 }
 var clientExports = client.exports;
 const ReactDOM = /* @__PURE__ */ getDefaultExportFromCjs(clientExports);
+const _ImmutableObjectStorageCreateCertificateResult = Record({
+  "method": Text,
+  "blob_hash": Text
+});
+const _ImmutableObjectStorageRefillInformation = Record({
+  "proposed_top_up_amount": Opt(Nat)
+});
+const _ImmutableObjectStorageRefillResult = Record({
+  "success": Opt(Bool),
+  "topped_up_amount": Opt(Nat)
+});
 const Error$1 = Variant({
   "FrontendOriginsNotConfigured": Null,
   "MixedSsoSources": Record({
@@ -33192,29 +33203,29 @@ const UserRole = Variant({
   "user": Null,
   "guest": Null
 });
-const UploadKind$1 = Variant({
-  "thumbnail": Null,
-  "video": Null
-});
-const UploadStatus = Variant({
-  "active": Null,
-  "cancelled": Null,
-  "completed": Null,
-  "finalized": Null
+const ExternalBlob2 = Vec(Nat8);
+const VideoStatus$1 = Variant({
+  "deleted": Null,
+  "published": Null,
+  "processing": Null,
+  "draft": Null
 });
 const UserId = Principal2;
 const Timestamp = Int;
-const UploadSession = Record({
+const Video = Record({
   "id": Nat,
-  "status": UploadStatus,
+  "status": VideoStatus$1,
+  "title": Text,
+  "thumbnail": Opt(ExternalBlob2),
   "ownerId": UserId,
-  "assetId": Text,
-  "kind": UploadKind$1,
+  "video": ExternalBlob2,
   "createdAt": Timestamp,
-  "receivedBytes": Nat,
+  "publishedAt": Opt(Timestamp),
   "mimeType": Text,
-  "totalSize": Nat,
-  "chunkSize": Nat
+  "description": Opt(Text),
+  "fileSize": Nat,
+  "filename": Text,
+  "isPrivate": Bool
 });
 const Value = Variant({
   "int": Int,
@@ -33228,25 +33239,6 @@ const Cell = Record({ "value": Value, "name": Text });
 const Result = Record({
   "hasMore": Bool,
   "rows": Vec(Vec(Cell))
-});
-const VideoStatus$1 = Variant({
-  "deleted": Null,
-  "published": Null,
-  "processing": Null,
-  "draft": Null
-});
-const Video = Record({
-  "id": Nat,
-  "status": VideoStatus$1,
-  "title": Text,
-  "ownerId": UserId,
-  "createdAt": Timestamp,
-  "videoAssetId": Text,
-  "publishedAt": Opt(Timestamp),
-  "mimeType": Text,
-  "description": Opt(Text),
-  "fileSize": Nat,
-  "thumbnailAssetId": Opt(Text)
 });
 const User$1 = Record({
   "id": UserId,
@@ -33277,22 +33269,52 @@ const Page_1 = Record({
   "nextCursor": Opt(Cursor)
 });
 Service({
+  "_immutableObjectStorageBlobsAreLive": Func(
+    [Vec(Vec(Nat8))],
+    [Vec(Bool)],
+    ["query"]
+  ),
+  "_immutableObjectStorageBlobsToDelete": Func(
+    [],
+    [Vec(Vec(Nat8))],
+    ["query"]
+  ),
+  "_immutableObjectStorageConfirmBlobDeletion": Func(
+    [Vec(Vec(Nat8))],
+    [],
+    []
+  ),
+  "_immutableObjectStorageCreateCertificate": Func(
+    [Text],
+    [_ImmutableObjectStorageCreateCertificateResult],
+    []
+  ),
+  "_immutableObjectStorageRefillCashier": Func(
+    [Opt(_ImmutableObjectStorageRefillInformation)],
+    [_ImmutableObjectStorageRefillResult],
+    []
+  ),
+  "_immutableObjectStorageUpdateGatewayPrincipals": Func([], [], []),
   "_initialize_access_control": Func([], [], []),
   "_internet_identity_sign_in_finish": Func([], [Result__1], []),
   "_internet_identity_sign_in_start": Func([], [Vec(Nat8)], []),
   "assignCallerUserRole": Func([Principal2, UserRole], [], []),
-  "createUploadSession": Func(
-    [UploadKind$1, Nat, Text],
-    [UploadSession],
+  "createVideo": Func(
+    [
+      Text,
+      Opt(Text),
+      ExternalBlob2,
+      Opt(ExternalBlob2),
+      Text,
+      Text,
+      Nat,
+      Bool
+    ],
+    [Video],
     []
   ),
   "deleteVideo": Func([Nat], [], []),
   "execute": Func([Text], [Result], ["query"]),
-  "finalizeMedia": Func(
-    [Nat, Text, Opt(Text), Opt(Text)],
-    [Video],
-    []
-  ),
   "getApiDoc": Func([], [Text], ["query"]),
   "getCallerProfile": Func([], [Opt(User$1)], ["query"]),
   "getCallerUserRole": Func([], [UserRole], ["query"]),
@@ -33320,15 +33342,20 @@ Service({
   ),
   "schema": Func([], [Text], ["query"]),
   "subscribe": Func([UserId], [], []),
-  "unsubscribe": Func([UserId], [], []),
-  "uploadChunk": Func(
-    [Nat, Nat, Vec(Nat8)],
-    [Nat],
-    []
-  ),
-  "verifyUpload": Func([Nat], [], [])
+  "unsubscribe": Func([UserId], [], [])
 });
 const idlFactory = ({ IDL: IDL2 }) => {
+  const _ImmutableObjectStorageCreateCertificateResult2 = IDL2.Record({
+    "method": IDL2.Text,
+    "blob_hash": IDL2.Text
+  });
+  const _ImmutableObjectStorageRefillInformation2 = IDL2.Record({
+    "proposed_top_up_amount": IDL2.Opt(IDL2.Nat)
+  });
+  const _ImmutableObjectStorageRefillResult2 = IDL2.Record({
+    "success": IDL2.Opt(IDL2.Bool),
+    "topped_up_amount": IDL2.Opt(IDL2.Nat)
+  });
   const Error2 = IDL2.Variant({
     "FrontendOriginsNotConfigured": IDL2.Null,
     "MixedSsoSources": IDL2.Record({
@@ -33356,29 +33383,29 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "user": IDL2.Null,
     "guest": IDL2.Null
   });
-  const UploadKind2 = IDL2.Variant({
-    "thumbnail": IDL2.Null,
-    "video": IDL2.Null
-  });
-  const UploadStatus2 = IDL2.Variant({
-    "active": IDL2.Null,
-    "cancelled": IDL2.Null,
-    "completed": IDL2.Null,
-    "finalized": IDL2.Null
+  const ExternalBlob3 = IDL2.Vec(IDL2.Nat8);
+  const VideoStatus2 = IDL2.Variant({
+    "deleted": IDL2.Null,
+    "published": IDL2.Null,
+    "processing": IDL2.Null,
+    "draft": IDL2.Null
   });
   const UserId2 = IDL2.Principal;
   const Timestamp2 = IDL2.Int;
-  const UploadSession2 = IDL2.Record({
+  const Video2 = IDL2.Record({
     "id": IDL2.Nat,
-    "status": UploadStatus2,
+    "status": VideoStatus2,
+    "title": IDL2.Text,
+    "thumbnail": IDL2.Opt(ExternalBlob3),
     "ownerId": UserId2,
-    "assetId": IDL2.Text,
-    "kind": UploadKind2,
+    "video": ExternalBlob3,
     "createdAt": Timestamp2,
-    "receivedBytes": IDL2.Nat,
+    "publishedAt": IDL2.Opt(Timestamp2),
     "mimeType": IDL2.Text,
-    "totalSize": IDL2.Nat,
-    "chunkSize": IDL2.Nat
+    "description": IDL2.Opt(IDL2.Text),
+    "fileSize": IDL2.Nat,
+    "filename": IDL2.Text,
+    "isPrivate": IDL2.Bool
   });
   const Value2 = IDL2.Variant({
     "int": IDL2.Int,
@@ -33392,25 +33419,6 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const Result2 = IDL2.Record({
     "hasMore": IDL2.Bool,
     "rows": IDL2.Vec(IDL2.Vec(Cell2))
-  });
-  const VideoStatus2 = IDL2.Variant({
-    "deleted": IDL2.Null,
-    "published": IDL2.Null,
-    "processing": IDL2.Null,
-    "draft": IDL2.Null
-  });
-  const Video2 = IDL2.Record({
-    "id": IDL2.Nat,
-    "status": VideoStatus2,
-    "title": IDL2.Text,
-    "ownerId": UserId2,
-    "createdAt": Timestamp2,
-    "videoAssetId": IDL2.Text,
-    "publishedAt": IDL2.Opt(Timestamp2),
-    "mimeType": IDL2.Text,
-    "description": IDL2.Opt(IDL2.Text),
-    "fileSize": IDL2.Nat,
-    "thumbnailAssetId": IDL2.Opt(IDL2.Text)
   });
   const User2 = IDL2.Record({
     "id": UserId2,
@@ -33441,22 +33449,52 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "nextCursor": IDL2.Opt(Cursor2)
   });
   return IDL2.Service({
+    "_immutableObjectStorageBlobsAreLive": IDL2.Func(
+      [IDL2.Vec(IDL2.Vec(IDL2.Nat8))],
+      [IDL2.Vec(IDL2.Bool)],
+      ["query"]
+    ),
+    "_immutableObjectStorageBlobsToDelete": IDL2.Func(
+      [],
+      [IDL2.Vec(IDL2.Vec(IDL2.Nat8))],
+      ["query"]
+    ),
+    "_immutableObjectStorageConfirmBlobDeletion": IDL2.Func(
+      [IDL2.Vec(IDL2.Vec(IDL2.Nat8))],
+      [],
+      []
+    ),
+    "_immutableObjectStorageCreateCertificate": IDL2.Func(
+      [IDL2.Text],
+      [_ImmutableObjectStorageCreateCertificateResult2],
+      []
+    ),
+    "_immutableObjectStorageRefillCashier": IDL2.Func(
+      [IDL2.Opt(_ImmutableObjectStorageRefillInformation2)],
+      [_ImmutableObjectStorageRefillResult2],
+      []
+    ),
+    "_immutableObjectStorageUpdateGatewayPrincipals": IDL2.Func([], [], []),
     "_initialize_access_control": IDL2.Func([], [], []),
     "_internet_identity_sign_in_finish": IDL2.Func([], [Result__12], []),
     "_internet_identity_sign_in_start": IDL2.Func([], [IDL2.Vec(IDL2.Nat8)], []),
     "assignCallerUserRole": IDL2.Func([IDL2.Principal, UserRole2], [], []),
-    "createUploadSession": IDL2.Func(
-      [UploadKind2, IDL2.Nat, IDL2.Text],
-      [UploadSession2],
+    "createVideo": IDL2.Func(
+      [
+        IDL2.Text,
+        IDL2.Opt(IDL2.Text),
+        ExternalBlob3,
+        IDL2.Opt(ExternalBlob3),
+        IDL2.Text,
+        IDL2.Text,
+        IDL2.Nat,
+        IDL2.Bool
+      ],
+      [Video2],
       []
     ),
     "deleteVideo": IDL2.Func([IDL2.Nat], [], []),
     "execute": IDL2.Func([IDL2.Text], [Result2], ["query"]),
-    "finalizeMedia": IDL2.Func(
-      [IDL2.Nat, IDL2.Text, IDL2.Opt(IDL2.Text), IDL2.Opt(IDL2.Text)],
-      [Video2],
-      []
-    ),
     "getApiDoc": IDL2.Func([], [IDL2.Text], ["query"]),
     "getCallerProfile": IDL2.Func([], [IDL2.Opt(User2)], ["query"]),
     "getCallerUserRole": IDL2.Func([], [UserRole2], ["query"]),
@@ -33484,13 +33522,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     ),
     "schema": IDL2.Func([], [IDL2.Text], ["query"]),
     "subscribe": IDL2.Func([UserId2], [], []),
-    "unsubscribe": IDL2.Func([UserId2], [], []),
-    "uploadChunk": IDL2.Func(
-      [IDL2.Nat, IDL2.Nat, IDL2.Vec(IDL2.Nat8)],
-      [IDL2.Nat],
-      []
-    ),
-    "verifyUpload": IDL2.Func([IDL2.Nat], [], [])
+    "unsubscribe": IDL2.Func([UserId2], [], [])
   });
 };
 function candid_some(value) {
@@ -33504,11 +33536,6 @@ function candid_none() {
 function record_opt_to_undefined(arg) {
   return arg == null ? void 0 : arg;
 }
-var UploadKind = /* @__PURE__ */ ((UploadKind2) => {
-  UploadKind2["thumbnail"] = "thumbnail";
-  UploadKind2["video"] = "video";
-  return UploadKind2;
-})(UploadKind || {});
 var VideoStatus = /* @__PURE__ */ ((VideoStatus2) => {
   VideoStatus2["deleted"] = "deleted";
   VideoStatus2["published"] = "published";
@@ -33522,6 +33549,90 @@ class Backend {
     this._uploadFile = _uploadFile;
     this._downloadFile = _downloadFile;
     this.processError = processError2;
+  }
+  async _immutableObjectStorageBlobsAreLive(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor._immutableObjectStorageBlobsAreLive(arg0);
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor._immutableObjectStorageBlobsAreLive(arg0);
+      return result;
+    }
+  }
+  async _immutableObjectStorageBlobsToDelete() {
+    if (this.processError) {
+      try {
+        const result = await this.actor._immutableObjectStorageBlobsToDelete();
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor._immutableObjectStorageBlobsToDelete();
+      return result;
+    }
+  }
+  async _immutableObjectStorageConfirmBlobDeletion(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor._immutableObjectStorageConfirmBlobDeletion(arg0);
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor._immutableObjectStorageConfirmBlobDeletion(arg0);
+      return result;
+    }
+  }
+  async _immutableObjectStorageCreateCertificate(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor._immutableObjectStorageCreateCertificate(arg0);
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor._immutableObjectStorageCreateCertificate(arg0);
+      return result;
+    }
+  }
+  async _immutableObjectStorageRefillCashier(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor._immutableObjectStorageRefillCashier(to_candid_opt_n1(this._uploadFile, this._downloadFile, arg0));
+        return from_candid__ImmutableObjectStorageRefillResult_n4(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor._immutableObjectStorageRefillCashier(to_candid_opt_n1(this._uploadFile, this._downloadFile, arg0));
+      return from_candid__ImmutableObjectStorageRefillResult_n4(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async _immutableObjectStorageUpdateGatewayPrincipals() {
+    if (this.processError) {
+      try {
+        const result = await this.actor._immutableObjectStorageUpdateGatewayPrincipals();
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor._immutableObjectStorageUpdateGatewayPrincipals();
+      return result;
+    }
   }
   async _initialize_access_control() {
     if (this.processError) {
@@ -33541,14 +33652,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor._internet_identity_sign_in_finish();
-        return from_candid_Result__1_n1(this._uploadFile, this._downloadFile, result);
+        return from_candid_Result__1_n8(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor._internet_identity_sign_in_finish();
-      return from_candid_Result__1_n1(this._uploadFile, this._downloadFile, result);
+      return from_candid_Result__1_n8(this._uploadFile, this._downloadFile, result);
     }
   }
   async _internet_identity_sign_in_start() {
@@ -33568,29 +33679,29 @@ class Backend {
   async assignCallerUserRole(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n5(this._uploadFile, this._downloadFile, arg1));
+        const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n12(this._uploadFile, this._downloadFile, arg1));
         return result;
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n5(this._uploadFile, this._downloadFile, arg1));
+      const result = await this.actor.assignCallerUserRole(arg0, to_candid_UserRole_n12(this._uploadFile, this._downloadFile, arg1));
       return result;
     }
   }
-  async createUploadSession(arg0, arg1, arg2) {
+  async createVideo(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
     if (this.processError) {
       try {
-        const result = await this.actor.createUploadSession(to_candid_UploadKind_n7(this._uploadFile, this._downloadFile, arg0), arg1, arg2);
-        return from_candid_UploadSession_n9(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.createVideo(arg0, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg1), await to_candid_ExternalBlob_n15(this._uploadFile, this._downloadFile, arg2), await to_candid_opt_n16(this._uploadFile, this._downloadFile, arg3), arg4, arg5, arg6, arg7);
+        return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.createUploadSession(to_candid_UploadKind_n7(this._uploadFile, this._downloadFile, arg0), arg1, arg2);
-      return from_candid_UploadSession_n9(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.createVideo(arg0, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg1), await to_candid_ExternalBlob_n15(this._uploadFile, this._downloadFile, arg2), await to_candid_opt_n16(this._uploadFile, this._downloadFile, arg3), arg4, arg5, arg6, arg7);
+      return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
     }
   }
   async deleteVideo(arg0) {
@@ -33611,28 +33722,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.execute(arg0);
-        return from_candid_Result_n15(this._uploadFile, this._downloadFile, result);
+        return from_candid_Result_n25(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.execute(arg0);
-      return from_candid_Result_n15(this._uploadFile, this._downloadFile, result);
-    }
-  }
-  async finalizeMedia(arg0, arg1, arg2, arg3) {
-    if (this.processError) {
-      try {
-        const result = await this.actor.finalizeMedia(arg0, arg1, to_candid_opt_n23(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n23(this._uploadFile, this._downloadFile, arg3));
-        return from_candid_Video_n24(this._uploadFile, this._downloadFile, result);
-      } catch (e) {
-        this.processError(e);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.finalizeMedia(arg0, arg1, to_candid_opt_n23(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n23(this._uploadFile, this._downloadFile, arg3));
-      return from_candid_Video_n24(this._uploadFile, this._downloadFile, result);
+      return from_candid_Result_n25(this._uploadFile, this._downloadFile, result);
     }
   }
   async getApiDoc() {
@@ -33653,112 +33750,112 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCallerProfile();
-        return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCallerProfile();
-      return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCallerUserRole() {
     if (this.processError) {
       try {
         const result = await this.actor.getCallerUserRole();
-        return from_candid_UserRole_n33(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserRole_n36(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCallerUserRole();
-      return from_candid_UserRole_n33(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserRole_n36(this._uploadFile, this._downloadFile, result);
     }
   }
   async getChannel(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getChannel(arg0);
-        return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getChannel(arg0);
-      return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
     }
   }
   async getChannelByUsername(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getChannelByUsername(arg0);
-        return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getChannelByUsername(arg0);
-      return from_candid_opt_n30(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
     }
   }
   async getChannelVideos(arg0, arg1, arg2) {
     if (this.processError) {
       try {
         const result = await this.actor.getChannelVideos(arg0, arg1, arg2);
-        return from_candid_Page_n35(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getChannelVideos(arg0, arg1, arg2);
-      return from_candid_Page_n35(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
     }
   }
   async getFeed(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getFeed(arg0, arg1);
-        return from_candid_Page_n35(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getFeed(arg0, arg1);
-      return from_candid_Page_n35(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
     }
   }
   async getMyVideos(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getMyVideos(arg0, arg1);
-        return from_candid_Page_n35(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMyVideos(arg0, arg1);
-      return from_candid_Page_n35(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
     }
   }
   async getNotifications(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getNotifications(arg0, arg1);
-        return from_candid_Page_1_n39(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_1_n42(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getNotifications(arg0, arg1);
-      return from_candid_Page_1_n39(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_1_n42(this._uploadFile, this._downloadFile, result);
     }
   }
   async getStorageProviders() {
@@ -33807,14 +33904,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getSubscriptionFeed(arg0, arg1);
-        return from_candid_Page_n35(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getSubscriptionFeed(arg0, arg1);
-      return from_candid_Page_n35(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
     }
   }
   async getUnreadNotificationCount() {
@@ -33835,14 +33932,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getVideo(arg0);
-        return from_candid_opt_n46(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getVideo(arg0);
-      return from_candid_opt_n46(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
     }
   }
   async isCallerAdmin() {
@@ -33891,14 +33988,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.publishVideo(arg0);
-        return from_candid_Video_n24(this._uploadFile, this._downloadFile, result);
+        return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.publishVideo(arg0);
-      return from_candid_Video_n24(this._uploadFile, this._downloadFile, result);
+      return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
     }
   }
   async registerStorageProvider(arg0) {
@@ -33918,15 +34015,15 @@ class Backend {
   async saveProfile(arg0, arg1, arg2, arg3) {
     if (this.processError) {
       try {
-        const result = await this.actor.saveProfile(arg0, arg1, to_candid_opt_n23(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n23(this._uploadFile, this._downloadFile, arg3));
-        return from_candid_User_n31(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.saveProfile(arg0, arg1, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n14(this._uploadFile, this._downloadFile, arg3));
+        return from_candid_User_n34(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.saveProfile(arg0, arg1, to_candid_opt_n23(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n23(this._uploadFile, this._downloadFile, arg3));
-      return from_candid_User_n31(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.saveProfile(arg0, arg1, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg2), to_candid_opt_n14(this._uploadFile, this._downloadFile, arg3));
+      return from_candid_User_n34(this._uploadFile, this._downloadFile, result);
     }
   }
   async schema() {
@@ -33971,213 +34068,143 @@ class Backend {
       return result;
     }
   }
-  async uploadChunk(arg0, arg1, arg2) {
-    if (this.processError) {
-      try {
-        const result = await this.actor.uploadChunk(arg0, arg1, arg2);
-        return result;
-      } catch (e) {
-        this.processError(e);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.uploadChunk(arg0, arg1, arg2);
-      return result;
-    }
-  }
-  async verifyUpload(arg0) {
-    if (this.processError) {
-      try {
-        const result = await this.actor.verifyUpload(arg0);
-        return result;
-      } catch (e) {
-        this.processError(e);
-        throw new Error("unreachable");
-      }
-    } else {
-      const result = await this.actor.verifyUpload(arg0);
-      return result;
-    }
-  }
 }
-function from_candid_Cell_n19(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n20(_uploadFile, _downloadFile, value);
+function from_candid_Cell_n29(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n30(_uploadFile, _downloadFile, value);
 }
-function from_candid_Error_n3(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n4(_uploadFile, _downloadFile, value);
+function from_candid_Error_n10(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n11(_uploadFile, _downloadFile, value);
 }
-function from_candid_NotificationKind_n44(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n45(_uploadFile, _downloadFile, value);
+async function from_candid_ExternalBlob_n22(_uploadFile, _downloadFile, value) {
+  return await _downloadFile(value);
 }
-function from_candid_Notification_n42(_uploadFile, _downloadFile, value) {
+function from_candid_NotificationKind_n47(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n48(_uploadFile, _downloadFile, value);
+}
+function from_candid_Notification_n45(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n46(_uploadFile, _downloadFile, value);
+}
+function from_candid_Page_1_n42(_uploadFile, _downloadFile, value) {
   return from_candid_record_n43(_uploadFile, _downloadFile, value);
 }
-function from_candid_Page_1_n39(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n40(_uploadFile, _downloadFile, value);
+async function from_candid_Page_n38(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n39(_uploadFile, _downloadFile, value);
 }
-function from_candid_Page_n35(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n36(_uploadFile, _downloadFile, value);
+function from_candid_Result__1_n8(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n9(_uploadFile, _downloadFile, value);
 }
-function from_candid_Result__1_n1(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n2(_uploadFile, _downloadFile, value);
+function from_candid_Result_n25(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n26(_uploadFile, _downloadFile, value);
 }
-function from_candid_Result_n15(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n16(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n36(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n37(_uploadFile, _downloadFile, value);
 }
-function from_candid_UploadKind_n13(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n14(_uploadFile, _downloadFile, value);
+function from_candid_User_n34(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n35(_uploadFile, _downloadFile, value);
 }
-function from_candid_UploadSession_n9(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n10(_uploadFile, _downloadFile, value);
+function from_candid_Value_n31(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n32(_uploadFile, _downloadFile, value);
 }
-function from_candid_UploadStatus_n11(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n12(_uploadFile, _downloadFile, value);
+function from_candid_VideoStatus_n19(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n20(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n33(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n34(_uploadFile, _downloadFile, value);
+async function from_candid_Video_n17(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n18(_uploadFile, _downloadFile, value);
 }
-function from_candid_User_n31(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n32(_uploadFile, _downloadFile, value);
+function from_candid__ImmutableObjectStorageRefillResult_n4(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-function from_candid_Value_n21(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n22(_uploadFile, _downloadFile, value);
+async function from_candid_opt_n21(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : await from_candid_ExternalBlob_n22(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_VideoStatus_n26(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n27(_uploadFile, _downloadFile, value);
-}
-function from_candid_Video_n24(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n25(_uploadFile, _downloadFile, value);
-}
-function from_candid_opt_n28(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n23(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n29(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n24(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n30(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_User_n31(_uploadFile, _downloadFile, value[0]);
+function from_candid_opt_n33(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : from_candid_User_n34(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n38(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n41(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n46(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : from_candid_Video_n24(_uploadFile, _downloadFile, value[0]);
+async function from_candid_opt_n49(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : await from_candid_Video_n17(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_record_n10(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n6(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
+}
+function from_candid_opt_n7(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : value[0];
+}
+async function from_candid_record_n18(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    status: from_candid_UploadStatus_n11(_uploadFile, _downloadFile, value.status),
+    status: from_candid_VideoStatus_n19(_uploadFile, _downloadFile, value.status),
+    title: value.title,
+    thumbnail: record_opt_to_undefined(await from_candid_opt_n21(_uploadFile, _downloadFile, value.thumbnail)),
     ownerId: value.ownerId,
-    assetId: value.assetId,
-    kind: from_candid_UploadKind_n13(_uploadFile, _downloadFile, value.kind),
+    video: await from_candid_ExternalBlob_n22(_uploadFile, _downloadFile, value.video),
     createdAt: value.createdAt,
-    receivedBytes: value.receivedBytes,
+    publishedAt: record_opt_to_undefined(from_candid_opt_n23(_uploadFile, _downloadFile, value.publishedAt)),
     mimeType: value.mimeType,
-    totalSize: value.totalSize,
-    chunkSize: value.chunkSize
+    description: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.description)),
+    fileSize: value.fileSize,
+    filename: value.filename,
+    isPrivate: value.isPrivate
   };
 }
-function from_candid_record_n16(_uploadFile, _downloadFile, value) {
+function from_candid_record_n26(_uploadFile, _downloadFile, value) {
   return {
     hasMore: value.hasMore,
-    rows: from_candid_vec_n17(_uploadFile, _downloadFile, value.rows)
+    rows: from_candid_vec_n27(_uploadFile, _downloadFile, value.rows)
   };
 }
-function from_candid_record_n20(_uploadFile, _downloadFile, value) {
+function from_candid_record_n30(_uploadFile, _downloadFile, value) {
   return {
-    value: from_candid_Value_n21(_uploadFile, _downloadFile, value.value),
+    value: from_candid_Value_n31(_uploadFile, _downloadFile, value.value),
     name: value.name
   };
 }
-function from_candid_record_n25(_uploadFile, _downloadFile, value) {
+function from_candid_record_n35(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    status: from_candid_VideoStatus_n26(_uploadFile, _downloadFile, value.status),
-    title: value.title,
-    ownerId: value.ownerId,
-    createdAt: value.createdAt,
-    videoAssetId: value.videoAssetId,
-    publishedAt: record_opt_to_undefined(from_candid_opt_n28(_uploadFile, _downloadFile, value.publishedAt)),
-    mimeType: value.mimeType,
-    description: record_opt_to_undefined(from_candid_opt_n29(_uploadFile, _downloadFile, value.description)),
-    fileSize: value.fileSize,
-    thumbnailAssetId: record_opt_to_undefined(from_candid_opt_n29(_uploadFile, _downloadFile, value.thumbnailAssetId))
-  };
-}
-function from_candid_record_n32(_uploadFile, _downloadFile, value) {
-  return {
-    id: value.id,
-    bio: record_opt_to_undefined(from_candid_opt_n29(_uploadFile, _downloadFile, value.bio)),
+    bio: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.bio)),
     username: value.username,
     displayName: value.displayName,
     createdAt: value.createdAt,
-    avatar: record_opt_to_undefined(from_candid_opt_n29(_uploadFile, _downloadFile, value.avatar))
+    avatar: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.avatar))
   };
 }
-function from_candid_record_n36(_uploadFile, _downloadFile, value) {
+async function from_candid_record_n39(_uploadFile, _downloadFile, value) {
   return {
-    items: from_candid_vec_n37(_uploadFile, _downloadFile, value.items),
-    nextCursor: record_opt_to_undefined(from_candid_opt_n38(_uploadFile, _downloadFile, value.nextCursor))
-  };
-}
-function from_candid_record_n40(_uploadFile, _downloadFile, value) {
-  return {
-    items: from_candid_vec_n41(_uploadFile, _downloadFile, value.items),
-    nextCursor: record_opt_to_undefined(from_candid_opt_n38(_uploadFile, _downloadFile, value.nextCursor))
+    items: await from_candid_vec_n40(_uploadFile, _downloadFile, value.items),
+    nextCursor: record_opt_to_undefined(from_candid_opt_n41(_uploadFile, _downloadFile, value.nextCursor))
   };
 }
 function from_candid_record_n43(_uploadFile, _downloadFile, value) {
   return {
+    items: from_candid_vec_n44(_uploadFile, _downloadFile, value.items),
+    nextCursor: record_opt_to_undefined(from_candid_opt_n41(_uploadFile, _downloadFile, value.nextCursor))
+  };
+}
+function from_candid_record_n46(_uploadFile, _downloadFile, value) {
+  return {
     id: value.id,
-    kind: from_candid_NotificationKind_n44(_uploadFile, _downloadFile, value.kind),
+    kind: from_candid_NotificationKind_n47(_uploadFile, _downloadFile, value.kind),
     createdAt: value.createdAt,
     read: value.read,
     recipientId: value.recipientId
   };
 }
-function from_candid_variant_n12(_uploadFile, _downloadFile, value) {
-  return "active" in value ? "active" : "cancelled" in value ? "cancelled" : "completed" in value ? "completed" : "finalized" in value ? "finalized" : value;
+function from_candid_record_n5(_uploadFile, _downloadFile, value) {
+  return {
+    success: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.success)),
+    topped_up_amount: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.topped_up_amount))
+  };
 }
-function from_candid_variant_n14(_uploadFile, _downloadFile, value) {
-  return "thumbnail" in value ? "thumbnail" : "video" in value ? "video" : value;
-}
-function from_candid_variant_n2(_uploadFile, _downloadFile, value) {
-  return "ok" in value ? {
-    __kind__: "ok",
-    ok: value.ok
-  } : "err" in value ? {
-    __kind__: "err",
-    err: from_candid_Error_n3(_uploadFile, _downloadFile, value.err)
-  } : value;
-}
-function from_candid_variant_n22(_uploadFile, _downloadFile, value) {
-  return "int" in value ? {
-    __kind__: "int",
-    int: value.int
-  } : "nat" in value ? {
-    __kind__: "nat",
-    nat: value.nat
-  } : "float" in value ? {
-    __kind__: "float",
-    float: value.float
-  } : "bool" in value ? {
-    __kind__: "bool",
-    bool: value.bool
-  } : "null" in value ? {
-    __kind__: "null",
-    null: value.null
-  } : "text" in value ? {
-    __kind__: "text",
-    text: value.text
-  } : value;
-}
-function from_candid_variant_n27(_uploadFile, _downloadFile, value) {
-  return "deleted" in value ? "deleted" : "published" in value ? "published" : "processing" in value ? "processing" : "draft" in value ? "draft" : value;
-}
-function from_candid_variant_n34(_uploadFile, _downloadFile, value) {
-  return "admin" in value ? "admin" : "user" in value ? "user" : "guest" in value ? "guest" : value;
-}
-function from_candid_variant_n4(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n11(_uploadFile, _downloadFile, value) {
   return "FrontendOriginsNotConfigured" in value ? {
     __kind__: "FrontendOriginsNotConfigured",
     FrontendOriginsNotConfigured: value.FrontendOriginsNotConfigured
@@ -34210,7 +34237,34 @@ function from_candid_variant_n4(_uploadFile, _downloadFile, value) {
     FrontendOriginMismatch: value.FrontendOriginMismatch
   } : value;
 }
-function from_candid_variant_n45(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n20(_uploadFile, _downloadFile, value) {
+  return "deleted" in value ? "deleted" : "published" in value ? "published" : "processing" in value ? "processing" : "draft" in value ? "draft" : value;
+}
+function from_candid_variant_n32(_uploadFile, _downloadFile, value) {
+  return "int" in value ? {
+    __kind__: "int",
+    int: value.int
+  } : "nat" in value ? {
+    __kind__: "nat",
+    nat: value.nat
+  } : "float" in value ? {
+    __kind__: "float",
+    float: value.float
+  } : "bool" in value ? {
+    __kind__: "bool",
+    bool: value.bool
+  } : "null" in value ? {
+    __kind__: "null",
+    null: value.null
+  } : "text" in value ? {
+    __kind__: "text",
+    text: value.text
+  } : value;
+}
+function from_candid_variant_n37(_uploadFile, _downloadFile, value) {
+  return "admin" in value ? "admin" : "user" in value ? "user" : "guest" in value ? "guest" : value;
+}
+function from_candid_variant_n48(_uploadFile, _downloadFile, value) {
   return "newVideo" in value ? {
     __kind__: "newVideo",
     newVideo: value.newVideo
@@ -34219,41 +34273,57 @@ function from_candid_variant_n45(_uploadFile, _downloadFile, value) {
     newSubscriber: value.newSubscriber
   } : value;
 }
-function from_candid_vec_n17(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_vec_n18(_uploadFile, _downloadFile, x2));
+function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
+  return "ok" in value ? {
+    __kind__: "ok",
+    ok: value.ok
+  } : "err" in value ? {
+    __kind__: "err",
+    err: from_candid_Error_n10(_uploadFile, _downloadFile, value.err)
+  } : value;
 }
-function from_candid_vec_n18(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_Cell_n19(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n27(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_vec_n28(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n37(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_Video_n24(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n28(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_Cell_n29(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n41(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_Notification_n42(_uploadFile, _downloadFile, x2));
+async function from_candid_vec_n40(_uploadFile, _downloadFile, value) {
+  return await Promise.all(value.map(async (x2) => await from_candid_Video_n17(_uploadFile, _downloadFile, x2)));
 }
-function to_candid_UploadKind_n7(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n8(_uploadFile, _downloadFile, value);
+function from_candid_vec_n44(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_Notification_n45(_uploadFile, _downloadFile, x2));
 }
-function to_candid_UserRole_n5(_uploadFile, _downloadFile, value) {
-  return to_candid_variant_n6(_uploadFile, _downloadFile, value);
+async function to_candid_ExternalBlob_n15(_uploadFile, _downloadFile, value) {
+  return await _uploadFile(value);
 }
-function to_candid_opt_n23(_uploadFile, _downloadFile, value) {
+function to_candid_UserRole_n12(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n13(_uploadFile, _downloadFile, value);
+}
+function to_candid__ImmutableObjectStorageRefillInformation_n2(_uploadFile, _downloadFile, value) {
+  return to_candid_record_n3(_uploadFile, _downloadFile, value);
+}
+function to_candid_opt_n1(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(to_candid__ImmutableObjectStorageRefillInformation_n2(_uploadFile, _downloadFile, value));
+}
+function to_candid_opt_n14(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
-function to_candid_variant_n6(_uploadFile, _downloadFile, value) {
+async function to_candid_opt_n16(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(await to_candid_ExternalBlob_n15(_uploadFile, _downloadFile, value));
+}
+function to_candid_record_n3(_uploadFile, _downloadFile, value) {
+  return {
+    proposed_top_up_amount: value.proposed_top_up_amount ? candid_some(value.proposed_top_up_amount) : candid_none()
+  };
+}
+function to_candid_variant_n13(_uploadFile, _downloadFile, value) {
   return value == "admin" ? {
     admin: null
   } : value == "user" ? {
     user: null
   } : value == "guest" ? {
     guest: null
-  } : value;
-}
-function to_candid_variant_n8(_uploadFile, _downloadFile, value) {
-  return value == "thumbnail" ? {
-    thumbnail: null
-  } : value == "video" ? {
-    video: null
   } : value;
 }
 function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {
@@ -34322,12 +34392,6 @@ const config = {
   notificationPageSize: 20,
   /** Number of channel videos requested per page. */
   channelPageSize: 12,
-  /** Maximum client chunk size, matching the backend upload contract (1 MB). */
-  uploadChunkSize: 1e6,
-  /** Maximum upload retries per chunk before failing. */
-  maxUploadRetries: 3,
-  /** Backoff base (ms) between upload retries. */
-  uploadRetryBaseDelayMs: 800,
   /** Accepted video MIME types for upload. */
   acceptedVideoMimeTypes: ["video/mp4", "video/webm", "video/quicktime"],
   /** Accepted thumbnail MIME types for upload. */
@@ -34511,7 +34575,7 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$q = [
+const __iconNode$r = [
   ["path", { d: "M10.268 21a2 2 0 0 0 3.464 0", key: "vwvbt9" }],
   [
     "path",
@@ -34523,14 +34587,14 @@ const __iconNode$q = [
   ["path", { d: "m2 2 20 20", key: "1ooewy" }],
   ["path", { d: "M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05", key: "1hqiys" }]
 ];
-const BellOff = createLucideIcon("bell-off", __iconNode$q);
+const BellOff = createLucideIcon("bell-off", __iconNode$r);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$p = [
+const __iconNode$q = [
   ["path", { d: "M10.268 21a2 2 0 0 0 3.464 0", key: "vwvbt9" }],
   [
     "path",
@@ -34540,26 +34604,38 @@ const __iconNode$p = [
     }
   ]
 ];
-const Bell = createLucideIcon("bell", __iconNode$p);
+const Bell = createLucideIcon("bell", __iconNode$q);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$o = [
+const __iconNode$p = [
   ["path", { d: "M18 6 7 17l-5-5", key: "116fxf" }],
   ["path", { d: "m22 10-7.5 7.5L13 16", key: "ke71qq" }]
 ];
-const CheckCheck = createLucideIcon("check-check", __iconNode$o);
+const CheckCheck = createLucideIcon("check-check", __iconNode$p);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$n = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$n);
+const __iconNode$o = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$o);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$n = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+];
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$n);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34568,10 +34644,9 @@ const Check = createLucideIcon("check", __iconNode$n);
  */
 const __iconNode$m = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
-  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
 ];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$m);
+const CircleCheck = createLucideIcon("circle-check", __iconNode$m);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34579,17 +34654,6 @@ const CircleAlert = createLucideIcon("circle-alert", __iconNode$m);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$l = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
-];
-const CircleCheck = createLucideIcon("circle-check", __iconNode$l);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$k = [
   [
     "path",
     { d: "M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z", key: "1tn4o7" }
@@ -34598,7 +34662,19 @@ const __iconNode$k = [
   ["path", { d: "m12.4 3.4 3.1 4", key: "6hsd6n" }],
   ["path", { d: "M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z", key: "ltgou9" }]
 ];
-const Clapperboard = createLucideIcon("clapperboard", __iconNode$k);
+const Clapperboard = createLucideIcon("clapperboard", __iconNode$l);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$k = [
+  ["path", { d: "M12 13v8", key: "1l5pq0" }],
+  ["path", { d: "M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242", key: "1pljnt" }],
+  ["path", { d: "m8 17 4-4 4 4", key: "1quai1" }]
+];
+const CloudUpload = createLucideIcon("cloud-upload", __iconNode$k);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34606,11 +34682,13 @@ const Clapperboard = createLucideIcon("clapperboard", __iconNode$k);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$j = [
-  ["path", { d: "M12 13v8", key: "1l5pq0" }],
-  ["path", { d: "M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242", key: "1pljnt" }],
-  ["path", { d: "m8 17 4-4 4 4", key: "1quai1" }]
+  ["path", { d: "M16 5h6", key: "1vod17" }],
+  ["path", { d: "M19 2v6", key: "4bpg5p" }],
+  ["path", { d: "M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5", key: "1ue2ih" }],
+  ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21", key: "1xmnt7" }],
+  ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }]
 ];
-const CloudUpload = createLucideIcon("cloud-upload", __iconNode$j);
+const ImagePlus = createLucideIcon("image-plus", __iconNode$j);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34618,20 +34696,6 @@ const CloudUpload = createLucideIcon("cloud-upload", __iconNode$j);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$i = [
-  ["path", { d: "M16 5h6", key: "1vod17" }],
-  ["path", { d: "M19 2v6", key: "4bpg5p" }],
-  ["path", { d: "M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5", key: "1ue2ih" }],
-  ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21", key: "1xmnt7" }],
-  ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }]
-];
-const ImagePlus = createLucideIcon("image-plus", __iconNode$i);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$h = [
   ["polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12", key: "o97t9d" }],
   [
     "path",
@@ -34641,15 +34705,27 @@ const __iconNode$h = [
     }
   ]
 ];
-const Inbox = createLucideIcon("inbox", __iconNode$h);
+const Inbox = createLucideIcon("inbox", __iconNode$i);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$g = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-const LoaderCircle = createLucideIcon("loader-circle", __iconNode$g);
+const __iconNode$h = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+const LoaderCircle = createLucideIcon("loader-circle", __iconNode$h);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$g = [
+  ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
+  ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
+  ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
+];
+const LockKeyhole = createLucideIcon("lock-keyhole", __iconNode$g);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -43607,47 +43683,45 @@ function Skeleton({
     }
   );
 }
-class StorageService {
-  async getDirectURL(assetId, identity) {
-    const config2 = await loadConfig();
-    const agent = new HttpAgent({
-      identity,
-      host: config2.backend_host
-    });
-    const client2 = new StorageClient(
-      config2.bucket_name,
-      config2.storage_gateway_url,
-      config2.backend_canister_id,
-      config2.project_id,
-      agent
+class UserService {
+  /** Fetches a channel by its principal id. */
+  getChannel(actor, userId) {
+    return actor.getChannel(userId);
+  }
+  /** Fetches a channel by its unique username. */
+  getChannelByUsername(actor, username) {
+    return actor.getChannelByUsername(username);
+  }
+  /** Saves the caller's channel profile. */
+  saveProfile(actor, input) {
+    return actor.saveProfile(
+      input.displayName,
+      input.username,
+      input.avatar,
+      input.bio
     );
-    return client2.getDirectURL(assetId);
   }
 }
-const storageService = new StorageService();
+const userService = new UserService();
 function VideoCard({
   video,
   channelName,
   viewCount,
   durationSeconds
 }) {
-  const [thumbnailUrl, setThumbnailUrl] = reactExports.useState(null);
-  reactExports.useEffect(() => {
-    let cancelled = false;
-    if (!video.thumbnailAssetId) {
-      setThumbnailUrl(null);
-      return;
-    }
-    setThumbnailUrl(null);
-    void storageService.getDirectURL(video.thumbnailAssetId).then((url) => {
-      if (!cancelled) setThumbnailUrl(url);
-    }).catch(() => {
-      if (!cancelled) setThumbnailUrl(null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [video.thumbnailAssetId]);
+  var _a2;
+  const { actor, isFetching } = useActor(createActor);
+  const channelQuery = useQuery({
+    queryKey: ["channel", video.ownerId.toString()],
+    queryFn: async () => {
+      if (!actor) return null;
+      return userService.getChannel(actor, video.ownerId);
+    },
+    enabled: channelName === void 0 && !!actor && !isFetching
+  });
+  const channel = channelName === void 0 ? channelQuery.data : void 0;
+  const resolvedChannelName = channelName ?? (channel == null ? void 0 : channel.displayName) ?? (channel == null ? void 0 : channel.username) ?? null;
+  const thumbnailUrl = ((_a2 = video.thumbnail) == null ? void 0 : _a2.getDirectURL()) ?? null;
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
   const relativeTime = timeAgo(publishedDate);
   const views = viewCount !== void 0 ? formatCount(viewCount) : "—";
@@ -43696,7 +43770,11 @@ function VideoCard({
                   className: "absolute bottom-2 right-2 rounded-md bg-black/80 px-1.5 py-0.5 font-mono text-xs font-medium text-white",
                   children: formatDuration(durationSeconds)
                 }
-              ) : null
+              ) : null,
+              video.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/80 px-2 py-1 text-xs font-medium text-white", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(LockKeyhole, { className: "size-3", "aria-hidden": "true" }),
+                "Private"
+              ] }) : null
             ]
           }
         ),
@@ -43711,16 +43789,23 @@ function VideoCard({
               children: video.title
             }
           ),
-          channelName ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+          resolvedChannelName ? /* @__PURE__ */ jsxRuntimeExports.jsx(
             Link,
             {
               to: "/channel/$userId",
               params: { userId: video.ownerId.toString() },
               "data-ocid": "channel_link",
               className: "truncate text-xs text-muted-foreground transition-colors hover:text-foreground",
-              children: channelName
+              children: resolvedChannelName
             }
-          ) : null,
+          ) : channelQuery.isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-muted-foreground", children: "Loading channel…" }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "span",
+            {
+              "data-ocid": "anonymous_channel",
+              className: "truncate text-xs text-muted-foreground",
+              children: "Anonymous"
+            }
+          ),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "text-xs text-muted-foreground", children: [
             views,
             " views",
@@ -43838,26 +43923,24 @@ function useInfiniteVideos({
   }, []);
   return { items, hasMore, loadMore, reset, isLoading, error, sentinelRef };
 }
-class UserService {
-  /** Fetches a channel by its principal id. */
-  getChannel(actor, userId) {
-    return actor.getChannel(userId);
-  }
-  /** Fetches a channel by its unique username. */
-  getChannelByUsername(actor, username) {
-    return actor.getChannelByUsername(username);
-  }
-  /** Saves the caller's channel profile. */
-  saveProfile(actor, input) {
-    return actor.saveProfile(
-      input.displayName,
-      input.username,
-      input.avatar,
-      input.bio
+class StorageService {
+  async getDirectURL(assetId, identity) {
+    const config2 = await loadConfig();
+    const agent = new HttpAgent({
+      identity,
+      host: config2.backend_host
+    });
+    const client2 = new StorageClient(
+      config2.bucket_name,
+      config2.storage_gateway_url,
+      config2.backend_canister_id,
+      config2.project_id,
+      agent
     );
+    return client2.getDirectURL(assetId);
   }
 }
-const userService = new UserService();
+const storageService = new StorageService();
 class VideoService {
   /** Fetches a cursor-paginated page of the global feed. */
   async getFeed(actor, cursor, limit) {
@@ -44602,9 +44685,20 @@ function UploadForm({ onSubmit, disabled }) {
   const [description, setDescription] = reactExports.useState("");
   const [videoFile, setVideoFile] = reactExports.useState(null);
   const [thumbnailFile, setThumbnailFile] = reactExports.useState(null);
+  const [isPrivate, setIsPrivate] = reactExports.useState(false);
+  const [videoPreviewUrl, setVideoPreviewUrl] = reactExports.useState(null);
   const [errors, setErrors] = reactExports.useState({});
   const videoInputRef = reactExports.useRef(null);
   const thumbnailInputRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    if (!videoFile || typeof URL.createObjectURL !== "function") {
+      setVideoPreviewUrl(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(videoFile);
+    setVideoPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [videoFile]);
   const handleVideoChange = (file) => {
     if (!file) return;
     setVideoFile(file);
@@ -44628,6 +44722,7 @@ function UploadForm({ onSubmit, disabled }) {
       file: videoFile,
       title: title.trim(),
       description: description.trim() || void 0,
+      isPrivate,
       thumbnail: thumbnailFile
     });
   };
@@ -44655,35 +44750,41 @@ function UploadForm({ onSubmit, disabled }) {
               }
             }
           ),
-          videoFile ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-            "div",
-            {
-              "data-ocid": "video_file",
-              className: "flex items-center gap-3 rounded-box border border-border bg-card p-4",
-              children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Clapperboard, { className: "size-6", "aria-hidden": "true" }) }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "truncate text-sm font-medium text-foreground", children: videoFile.name }),
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: formatBytes(videoFile.size) })
-                ] }),
-                /* @__PURE__ */ jsxRuntimeExports.jsx(
-                  "button",
-                  {
-                    type: "button",
-                    "data-ocid": "remove_video_button",
-                    "aria-label": "Remove video",
-                    className: "btn btn-ghost btn-sm btn-square text-muted-foreground",
-                    onClick: () => {
-                      setVideoFile(null);
-                      setErrors((prev) => ({ ...prev, video: void 0 }));
-                      if (videoInputRef.current) videoInputRef.current.value = "";
-                    },
-                    children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "size-4", "aria-hidden": "true" })
-                  }
-                )
-              ]
-            }
-          ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          videoFile ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { "data-ocid": "video_file", className: "space-y-3", children: [
+            videoPreviewUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "video",
+              {
+                "data-ocid": "video_preview",
+                src: videoPreviewUrl,
+                controls: true,
+                preload: "metadata",
+                className: "aspect-video w-full rounded-box border border-border bg-black object-contain",
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx("track", { kind: "captions", label: "Captions" })
+              }
+            ) : null,
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 rounded-box border border-border bg-card p-4", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex size-11 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Clapperboard, { className: "size-6", "aria-hidden": "true" }) }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0 flex-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "truncate text-sm font-medium text-foreground", children: videoFile.name }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-muted-foreground", children: formatBytes(videoFile.size) })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  "data-ocid": "remove_video_button",
+                  "aria-label": "Remove video",
+                  className: "btn btn-ghost btn-sm btn-square text-muted-foreground",
+                  onClick: () => {
+                    setVideoFile(null);
+                    setErrors((prev) => ({ ...prev, video: void 0 }));
+                    if (videoInputRef.current) videoInputRef.current.value = "";
+                  },
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "size-4", "aria-hidden": "true" })
+                }
+              )
+            ] })
+          ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
             "button",
             {
               type: "button",
@@ -44754,6 +44855,22 @@ function UploadForm({ onSubmit, disabled }) {
             description.length,
             "/",
             config.maxDescriptionLength
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "flex cursor-pointer items-start gap-3 rounded-box border border-border bg-card p-4", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "input",
+            {
+              type: "checkbox",
+              "data-ocid": "private_checkbox",
+              className: "checkbox checkbox-info mt-0.5",
+              checked: isPrivate,
+              onChange: (event) => setIsPrivate(event.target.checked)
+            }
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-sm font-medium text-foreground", children: "Private video" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-0.5 block text-xs text-muted-foreground", children: isPrivate ? "Only you can find and watch this video." : "Public videos appear in feeds and subscriptions." })
           ] })
         ] }),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
@@ -44871,16 +44988,10 @@ function Progress({ value, label, className }) {
 function UploadProgress({
   progress,
   fileSize,
-  chunkSize = config.uploadChunkSize,
   status = "Uploading",
   onCancel
 }) {
   const uploadedBytes = Math.round(fileSize * progress / 100);
-  const totalChunks = Math.max(1, Math.ceil(fileSize / chunkSize));
-  const currentChunk = Math.min(
-    totalChunks,
-    Math.max(1, Math.ceil(uploadedBytes / chunkSize))
-  );
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
@@ -44905,13 +45016,9 @@ function UploadProgress({
             "of ",
             formatBytes(fileSize)
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-muted-foreground", children: [
-            "Chunk",
-            " ",
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-mono text-foreground", children: currentChunk }),
-            " of",
-            " ",
-            totalChunks
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-mono text-foreground", children: [
+            Math.round(progress),
+            "%"
           ] })
         ] }),
         onCancel ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-end border-t border-border pt-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -44930,96 +45037,72 @@ function UploadProgress({
   );
 }
 class UploadService {
-  /** Creates a new upload session for a video or thumbnail. */
-  createUploadSession(actor, kind, totalSize, mimeType) {
-    return actor.createUploadSession(kind, totalSize, mimeType);
-  }
-  /** Uploads a single chunk of an upload session. */
-  uploadChunk(actor, sessionId, chunkIndex, data) {
-    return actor.uploadChunk(sessionId, chunkIndex, data);
-  }
-  /** Verifies that an upload session received all of its bytes. */
-  verifyUpload(actor, sessionId) {
-    return actor.verifyUpload(sessionId);
-  }
-  /** Finalizes a verified upload session into a video record. */
-  finalizeMedia(actor, sessionId, title, description, thumbnailAssetId) {
-    return actor.finalizeMedia(sessionId, title, description, thumbnailAssetId);
-  }
-  /** Uploads a single chunk with retry + backoff on transient failures. */
-  async uploadChunkWithRetry(actor, sessionId, chunkIndex, data) {
-    let attempt = 0;
-    for (; ; ) {
-      try {
-        await this.uploadChunk(actor, sessionId, chunkIndex, data);
-        return;
-      } catch (error) {
-        attempt += 1;
-        if (attempt > config.maxUploadRetries) {
-          throw error;
-        }
-        await new Promise(
-          (resolve) => setTimeout(resolve, config.uploadRetryBaseDelayMs * attempt)
-        );
-      }
-    }
-  }
-  /**
-   * Streams a file into an upload session, reports progress, and verifies it.
-   */
-  async streamFile(actor, session, file, onProgress) {
-    const advertisedChunkSize = Number(session.chunkSize);
-    const chunkSize = Number.isSafeInteger(advertisedChunkSize) && advertisedChunkSize > 0 ? Math.min(advertisedChunkSize, config.uploadChunkSize) : config.uploadChunkSize;
-    const totalChunks = Math.ceil(file.size / chunkSize);
-    let uploadedBytes = 0;
-    for (let index2 = 0; index2 < totalChunks; index2 += 1) {
-      const start = index2 * chunkSize;
-      const end = Math.min(start + chunkSize, file.size);
-      const chunk = new Uint8Array(await file.slice(start, end).arrayBuffer());
-      await this.uploadChunkWithRetry(actor, session.id, BigInt(index2), chunk);
-      uploadedBytes += chunk.length;
-      onProgress == null ? void 0 : onProgress(Math.round(uploadedBytes / file.size * 100));
-    }
-    await this.verifyUpload(actor, session.id);
-  }
-  /** Uploads an optional thumbnail and returns its stored asset id. */
-  async uploadThumbnail(actor, thumbnail) {
-    if (!thumbnail) return null;
-    if (thumbnail.size > config.maxThumbnailSizeBytes) {
-      throw new Error(
-        `Thumbnail exceeds the maximum size of ${config.maxThumbnailSizeBytes} bytes`
-      );
-    }
-    const session = await this.createUploadSession(
-      actor,
-      UploadKind.thumbnail,
-      BigInt(thumbnail.size),
-      thumbnail.type
+  /** Creates a draft backed by real object-storage references. */
+  createVideo(actor, title, description, video, thumbnail, filename, mimeType, fileSize, isPrivate) {
+    return actor.createVideo(
+      title,
+      description,
+      video,
+      thumbnail,
+      filename,
+      mimeType,
+      fileSize,
+      isPrivate
     );
-    await this.streamFile(actor, session, thumbnail);
-    return session.assetId;
   }
-  /** Orchestrates a full chunked video upload and publishes the result. */
-  async uploadVideo(actor, file, title, description, thumbnail, onProgress) {
+  async toExternalBlob(file, onProgress) {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    return ExternalBlob$1.fromBytes(
+      bytes,
+      file.type,
+      file.name
+    ).withUploadProgress((percentage) => onProgress == null ? void 0 : onProgress(percentage));
+  }
+  /** Uploads video/thumbnail bytes to object storage and publishes the record. */
+  async uploadVideo(actor, file, title, description, thumbnail, isPrivate, onProgress) {
+    if (file.size === 0) {
+      throw new Error("Choose a video that is not empty");
+    }
     if (file.size > config.maxVideoSizeBytes) {
       throw new Error(
         `Video exceeds the maximum size of ${config.maxVideoSizeBytes} bytes`
       );
     }
-    const session = await this.createUploadSession(
+    if (!config.acceptedVideoMimeTypes.includes(file.type)) {
+      throw new Error("Unsupported video format");
+    }
+    if (thumbnail) {
+      if (thumbnail.size > config.maxThumbnailSizeBytes) {
+        throw new Error(
+          `Thumbnail exceeds the maximum size of ${config.maxThumbnailSizeBytes} bytes`
+        );
+      }
+      if (!config.acceptedThumbnailMimeTypes.includes(
+        thumbnail.type
+      )) {
+        throw new Error("Unsupported thumbnail format");
+      }
+    }
+    onProgress == null ? void 0 : onProgress(0);
+    const videoProgressWeight = thumbnail ? 90 : 100;
+    const videoBlob = await this.toExternalBlob(file, (percentage) => {
+      onProgress == null ? void 0 : onProgress(Math.round(percentage * videoProgressWeight / 100));
+    });
+    const thumbnailBlob = thumbnail ? await this.toExternalBlob(thumbnail, (percentage) => {
+      onProgress == null ? void 0 : onProgress(
+        videoProgressWeight + Math.round(percentage * (100 - videoProgressWeight) / 100)
+      );
+    }) : null;
+    const draft = await this.createVideo(
       actor,
-      UploadKind.video,
-      BigInt(file.size),
-      file.type
-    );
-    await this.streamFile(actor, session, file, onProgress);
-    const thumbnailAssetId = await this.uploadThumbnail(actor, thumbnail);
-    const draft = await this.finalizeMedia(
-      actor,
-      session.id,
       title,
       description,
-      thumbnailAssetId
+      videoBlob,
+      thumbnailBlob,
+      file.name,
+      file.type,
+      BigInt(file.size),
+      isPrivate
     );
     return videoService.publishVideo(actor, draft.id);
   }
@@ -45046,6 +45129,7 @@ function useVideoUpload() {
           input.title,
           input.description ?? null,
           input.thumbnail ?? null,
+          input.isPrivate,
           (percentage) => {
             if (abortRef.current) return;
             setProgress(percentage);
@@ -45128,7 +45212,7 @@ function UploadPage() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mx-auto max-w-2xl p-4 sm:p-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("header", { className: "mb-6", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "font-display text-2xl font-bold text-foreground", children: "Upload a video" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-1 text-sm text-muted-foreground", children: "Publish a new video to your channel. Only finalized, published videos appear in feeds." })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-1 text-sm text-muted-foreground", children: "Publish to everyone, or keep a video private to your account." })
     ] }),
     phase === "success" && uploadedVideo ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "div",
@@ -45137,11 +45221,12 @@ function UploadPage() {
         className: "flex flex-col items-center gap-4 rounded-box border border-success/30 bg-card px-6 py-12 text-center",
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex size-14 items-center justify-center rounded-full bg-success/10 text-success", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleCheck, { className: "size-8", "aria-hidden": "true" }) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-semibold text-foreground", children: "Your video is live" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-xl font-semibold text-foreground", children: uploadedVideo.isPrivate ? "Your private video is ready" : "Your video is live" }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "max-w-sm text-sm text-muted-foreground", children: [
             "“",
             uploadedVideo.title,
-            "” has been published to your channel."
+            "” has been published",
+            uploadedVideo.isPrivate ? " privately and is visible only to you." : " to your channel."
           ] }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-2 flex flex-wrap items-center justify-center gap-3", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -45203,84 +45288,37 @@ function UploadPage() {
   ] });
 }
 function VideoPlayer({ video, poster }) {
-  const [src, setSrc] = reactExports.useState(null);
-  const [posterUrl, setPosterUrl] = reactExports.useState(poster ?? null);
-  reactExports.useEffect(() => {
-    let cancelled = false;
-    setSrc(null);
-    void storageService.getDirectURL(video.videoAssetId).then((url) => {
-      if (!cancelled) setSrc(url);
-    }).catch(() => {
-      if (!cancelled) setSrc(null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [video.videoAssetId]);
-  reactExports.useEffect(() => {
-    let cancelled = false;
-    if (poster) {
-      setPosterUrl(poster);
-      return;
-    }
-    if (!video.thumbnailAssetId) {
-      setPosterUrl(null);
-      return;
-    }
-    setPosterUrl(null);
-    void storageService.getDirectURL(video.thumbnailAssetId).then((url) => {
-      if (!cancelled) setPosterUrl(url);
-    }).catch(() => {
-      if (!cancelled) setPosterUrl(null);
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [poster, video.thumbnailAssetId]);
+  var _a2;
+  const src = video.video.getDirectURL();
+  const posterUrl = poster ?? ((_a2 = video.thumbnail) == null ? void 0 : _a2.getDirectURL());
   return /* @__PURE__ */ jsxRuntimeExports.jsx(
     "div",
     {
       "data-ocid": "video_player",
       className: "aspect-video w-full overflow-hidden rounded-box border border-border bg-black shadow-elevated",
-      children: src ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "video",
         {
           "data-ocid": "video_element",
+          src,
           controls: true,
           preload: "metadata",
-          poster: posterUrl ?? void 0,
+          poster: posterUrl,
           title: video.title,
           className: "size-full object-contain",
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("source", { src, type: video.mimeType }),
             /* @__PURE__ */ jsxRuntimeExports.jsx("track", { kind: "captions", label: "Captions" }),
             "Your browser does not support the video tag."
-          ]
-        }
-      ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "div",
-        {
-          "data-ocid": "video_loading_state",
-          className: "flex size-full items-center justify-center",
-          children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              "div",
-              {
-                className: "size-10 animate-pulse rounded-full bg-muted",
-                "aria-hidden": "true"
-              }
-            ),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "sr-only", children: "Loading video" })
           ]
         }
       )
     }
   );
 }
-function useGetVideo(videoId) {
+function useGetVideo(videoId, viewerKey) {
   const { actor, isFetching } = useActor(createActor);
   return useQuery({
-    queryKey: ["video", videoId.toString()],
+    queryKey: ["video", videoId.toString(), viewerKey],
     queryFn: async () => {
       if (!actor) return null;
       return videoService.getVideo(actor, videoId);
@@ -45303,7 +45341,7 @@ function WatchPage() {
   const { videoId } = useParams({ from: "/watch/$videoId" });
   const { principal } = useAuth();
   const parsedId = /^\d+$/.test(videoId) ? BigInt(videoId) : null;
-  const videoQuery = useGetVideo(parsedId ?? 0n);
+  const videoQuery = useGetVideo(parsedId ?? 0n, principal ?? "anonymous");
   const video = videoQuery.data ?? null;
   const ownerId = (video == null ? void 0 : video.ownerId) ?? null;
   const channelQuery = useGetChannel(ownerId);
@@ -45346,9 +45384,8 @@ function WatchPage() {
       }
     ) });
   }
-  const channelOwnerId = video.ownerId;
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
-  const channelName = (channel == null ? void 0 : channel.displayName) ?? (channel == null ? void 0 : channel.username) ?? "Channel";
+  const channelName = (channel == null ? void 0 : channel.displayName) ?? (channel == null ? void 0 : channel.username) ?? "Anonymous";
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mx-auto max-w-5xl p-4 sm:p-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(VideoPlayer, { video }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4", children: [
@@ -45363,14 +45400,21 @@ function WatchPage() {
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_size", children: formatBytes(video.fileSize) }),
         /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_date", children: timeAgo(publishedDate) })
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_date", children: timeAgo(publishedDate) }),
+        video.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-info", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(LockKeyhole, { className: "size-3.5", "aria-hidden": "true" }),
+            "Private"
+          ] })
+        ] }) : null
       ] }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 flex flex-col gap-4 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        channel ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
           Link,
           {
             to: "/channel/$userId",
-            params: { userId: channelOwnerId.toString() },
+            params: { userId: video.ownerId.toString() },
             "data-ocid": "channel_link",
             className: "group flex min-w-0 items-center gap-3",
             children: [
@@ -45379,20 +45423,30 @@ function WatchPage() {
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block truncate text-sm font-medium text-foreground group-hover:text-primary", children: channelName }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "block truncate text-xs text-muted-foreground", children: [
                   "@",
-                  (channel == null ? void 0 : channel.username) ?? "channel"
+                  channel.username
                 ] })
               ] })
             ]
           }
+        ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            "data-ocid": "anonymous_channel",
+            className: "flex min-w-0 items-center gap-3",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Avatar, { name: "Anonymous", size: "md" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block truncate text-sm font-medium text-foreground", children: "Anonymous" })
+            ]
+          }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(
+        channel ? /* @__PURE__ */ jsxRuntimeExports.jsx(
           SubscribeButton,
           {
-            channelId: channelOwnerId.toString(),
+            channelId: video.ownerId.toString(),
             hidden: isOwnChannel,
             disabled: !principal
           }
-        )
+        ) : null
       ] }),
       video.description ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 rounded-box border border-border bg-card p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
         "p",
