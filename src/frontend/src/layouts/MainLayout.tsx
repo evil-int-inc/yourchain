@@ -40,14 +40,11 @@ export function MainLayout() {
         </footer>
       </div>
 
-      <div
-        className="drawer-side z-40"
-        style={{ overflowX: "hidden", overflowY: "hidden" }}
-      >
+      <div className="drawer-side z-40">
         <button
           type="button"
           aria-label="Close sidebar"
-          className="drawer-overlay"
+          className="drawer-overlay lg:hidden"
           onClick={() => setDrawerOpen(false)}
         />
         <Sidebar onNavigate={() => setDrawerOpen(false)} />

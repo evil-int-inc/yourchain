@@ -39,8 +39,9 @@ function makeVideo(): Video {
 
 describe("VideoCard", () => {
   it("shows a missing profile as Anonymous without a channel link", () => {
-    render(<VideoCard video={makeVideo()} />);
+    const { container } = render(<VideoCard video={makeVideo()} />);
 
+    expect(container.querySelector(".aura.aura-gold")).toBeInTheDocument();
     expect(screen.getByTestId("anonymous_channel")).toHaveTextContent(
       "Anonymous",
     );
