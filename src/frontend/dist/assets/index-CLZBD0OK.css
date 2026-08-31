@@ -1874,6 +1874,64 @@
       cursor: not-allowed;
     }
 
+    .aura {
+      --aura-padding: .125rem;
+      padding: var(--aura-padding);
+      border-radius: calc(var(--aura-padding) + var(--aura-radius, var(--radius-box)));
+      animation: aura var(--tw-duration, 6s) linear infinite;
+      background-image: conic-gradient(from var(--aura-angle), transparent 225deg, currentColor);
+      display: inline-block;
+      position: relative;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .aura {
+        animation-duration: calc(var(--tw-duration, 6s) * 4);
+      }
+    }
+
+    .aura:before {
+      animation: inherit;
+      background-color: inherit;
+      background-image: inherit;
+      border-radius: inherit;
+      z-index: 0;
+      opacity: .7;
+      filter: blur(.25rem);
+      content: "";
+      width: 100%;
+      height: 100%;
+      display: block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      translate: -50% -50%;
+    }
+
+    .aura:after {
+      animation: inherit;
+      background-color: inherit;
+      background-image: inherit;
+      border-radius: inherit;
+      z-index: 0;
+      opacity: .7;
+      filter: blur(1rem);
+      content: "";
+      opacity: .3;
+      width: 100%;
+      height: 100%;
+      display: block;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      translate: -50% -50%;
+    }
+
+    .aura > * {
+      z-index: 1;
+      position: relative;
+    }
+
     .drawer-side > .drawer-overlay {
       cursor: pointer;
       background-color: oklch(0% 0 0 / .4);
@@ -2852,6 +2910,10 @@
       }
     }
 
+    .aura-gold {
+      background-image: repeating-conic-gradient(from var(--aura-angle), oklch(65.98% .1863 72.37), oklch(96.35% .0768 102.94), oklch(71.57% .1691 82.23), oklch(96.02% .0792 103.13), oklch(60.66% .1181 76.17), oklch(65.98% .1863 72.37) 50%);
+    }
+
     .loading-spinner {
       -webkit-mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform-origin='center'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke-width='3' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='8s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dasharray' values='0,150;42,150;42,150' keyTimes='0;0.475;1' dur='6s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dashoffset' values='0;-16;-59' keyTimes='0;0.475;1' dur='6s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/g%3E%3C/svg%3E");
       mask-image: url("data:image/svg+xml,%3Csvg width='24' height='24' stroke='black' viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cg transform-origin='center'%3E%3Ccircle cx='12' cy='12' r='9.5' fill='none' stroke-width='3' stroke-linecap='round'%3E%3CanimateTransform attributeName='transform' type='rotate' from='0 12 12' to='360 12 12' dur='8s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dasharray' values='0,150;42,150;42,150' keyTimes='0;0.475;1' dur='6s' repeatCount='indefinite'/%3E%3Canimate attributeName='stroke-dashoffset' values='0;-16;-59' keyTimes='0;0.475;1' dur='6s' repeatCount='indefinite'/%3E%3C/circle%3E%3C/g%3E%3C/svg%3E");
@@ -2943,7 +3005,15 @@
       --size: calc(var(--size-field, .25rem) * 6);
     }
 
-    .input-error, .input-error:focus, .input-error:focus-within, .aria-invalid\:textarea-error[aria-invalid="true"], .aria-invalid\:textarea-error[aria-invalid="true"]:focus, .aria-invalid\:textarea-error[aria-invalid="true"]:focus-within {
+    .input-error, .input-error:focus, .input-error:focus-within {
+      --input-color: var(--color-error);
+    }
+
+    .aura-rainbow {
+      background: conic-gradient(from var(--aura-angle) in oklch longer hue, transparent 10%, oklch(80% .15 0), oklch(80% .15 360), transparent 90%);
+    }
+
+    .aria-invalid\:textarea-error[aria-invalid="true"], .aria-invalid\:textarea-error[aria-invalid="true"]:focus, .aria-invalid\:textarea-error[aria-invalid="true"]:focus-within {
       --input-color: var(--color-error);
     }
   }

@@ -43524,25 +43524,18 @@ function MainLayout() {
         )
       ] }) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "div",
-      {
-        className: "drawer-side z-40",
-        style: { overflowX: "hidden", overflowY: "hidden" },
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            "button",
-            {
-              type: "button",
-              "aria-label": "Close sidebar",
-              className: "drawer-overlay",
-              onClick: () => setDrawerOpen(false)
-            }
-          ),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, { onNavigate: () => setDrawerOpen(false) })
-        ]
-      }
-    )
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "drawer-side z-40", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          type: "button",
+          "aria-label": "Close sidebar",
+          className: "drawer-overlay lg:hidden",
+          onClick: () => setDrawerOpen(false)
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, { onNavigate: () => setDrawerOpen(false) })
+    ] })
   ] });
 }
 function InfiniteScrollSentinel({
@@ -43853,6 +43846,15 @@ function Skeleton({
     }
   );
 }
+const Aura = ({
+  children,
+  gold = false,
+  rainbow = false,
+  disabled = false
+}) => {
+  if (disabled) return children;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: cn("aura", gold && "aura-gold", rainbow && "aura-rainbow"), children });
+};
 class MediaActionService {
   download(url, filename) {
     const link = document.createElement("a");
@@ -44053,7 +44055,7 @@ function VideoCard({
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
   const relativeTime = timeAgo(publishedDate);
   const views = formatCount(viewCount ?? video.viewCount);
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Aura, { gold: true, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "article",
     {
       "data-ocid": "video_card",
@@ -44146,7 +44148,7 @@ function VideoCard({
         ] })
       ]
     }
-  );
+  ) });
 }
 function VideoGrid({
   videos,
