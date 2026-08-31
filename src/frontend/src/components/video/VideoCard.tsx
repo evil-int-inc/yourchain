@@ -54,17 +54,17 @@ export function VideoCard({
   const views = formatCount(viewCount ?? video.viewCount);
 
   return (
-    <Aura gold>
+    <Aura className="block h-full w-full rounded-xl text-brand">
       <article
         data-ocid="video_card"
-        className="group flex flex-col rounded-box border border-border bg-card transition-smooth hover:shadow-elevated"
+        className="group flex h-full flex-col rounded-xl border border-border bg-card transition-smooth hover:shadow-elevated"
       >
         <Link
           to="/watch/$videoId"
           params={{ videoId: video.id.toString() }}
           data-ocid="video_thumbnail_link"
           aria-label={`Watch ${video.title}`}
-          className="relative block aspect-video overflow-hidden rounded-t-box bg-muted"
+          className="relative block aspect-video overflow-hidden rounded-t-xl bg-muted"
         >
           {thumbnailUrl ? (
             <img

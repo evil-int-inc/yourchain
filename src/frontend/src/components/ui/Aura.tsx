@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 interface AuraProps {
   readonly children: ReactNode;
+  readonly className?: string;
   readonly gold?: boolean;
   readonly rainbow?: boolean;
   readonly disabled?: boolean;
@@ -10,6 +11,7 @@ interface AuraProps {
 
 export const Aura = ({
   children,
+  className,
   gold = false,
   rainbow = false,
   disabled = false,
@@ -17,7 +19,14 @@ export const Aura = ({
   if (disabled) return children;
 
   return (
-    <div className={cn("aura", gold && "aura-gold", rainbow && "aura-rainbow")}>
+    <div
+      className={cn(
+        "aura",
+        gold && "aura-gold",
+        rainbow && "aura-rainbow",
+        className,
+      )}
+    >
       {children}
     </div>
   );

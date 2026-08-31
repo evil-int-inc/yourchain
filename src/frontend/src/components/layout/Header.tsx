@@ -90,11 +90,11 @@ export function Header({ onOpenSidebar }: HeaderProps) {
           aria-label="YourChain home"
           className="flex shrink-0 items-center gap-2 lg:hidden"
         >
-          <span className="flex size-8 items-center justify-center rounded-lg bg-info text-info-content">
+          <span className="flex size-8 items-center justify-center rounded-lg bg-brand text-white">
             <Play className="size-4 fill-current" aria-hidden="true" />
           </span>
           <span className="hidden text-lg font-bold tracking-tight min-[420px]:inline sm:hidden">
-            Your<span className="text-info">Chain</span>
+            Your<span className="text-brand">Chain</span>
           </span>
         </Link>
 

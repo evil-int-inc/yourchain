@@ -41,7 +41,8 @@ describe("VideoCard", () => {
   it("shows a missing profile as Anonymous without a channel link", () => {
     const { container } = render(<VideoCard video={makeVideo()} />);
 
-    expect(container.querySelector(".aura.aura-gold")).toBeInTheDocument();
+    expect(container.querySelector(".aura.text-brand")).toBeInTheDocument();
+    expect(screen.getByTestId("video_card")).toHaveClass("rounded-xl");
     expect(screen.getByTestId("anonymous_channel")).toHaveTextContent(
       "Anonymous",
     );

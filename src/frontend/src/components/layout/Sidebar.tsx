@@ -100,11 +100,11 @@ export function Sidebar({ onNavigate }: SidebarProps) {
           aria-label="YourChain home"
           className="flex items-center gap-2"
         >
-          <span className="flex size-9 items-center justify-center rounded-lg bg-info text-info-content">
+          <span className="flex size-9 items-center justify-center rounded-lg bg-brand text-white">
             <Play className="size-5 fill-current" aria-hidden="true" />
           </span>
           <span className="text-xl font-bold tracking-tight">
-            Your<span className="text-info">Chain</span>
+            Your<span className="text-brand">Chain</span>
           </span>
         </Link>
         <button
