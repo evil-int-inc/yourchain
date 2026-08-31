@@ -22,6 +22,7 @@ export interface Video {
     description?: string;
     fileSize: bigint;
     filename: string;
+    viewCount: bigint;
     isPrivate: boolean;
 }
 export type Timestamp = bigint;
@@ -44,7 +45,7 @@ export interface User {
     username: string;
     displayName: string;
     createdAt: Timestamp;
-    avatar?: string;
+    avatar?: ExternalBlob;
 }
 export type Result__1 = {
     __kind__: "ok";
@@ -175,8 +176,9 @@ export interface backendInterface {
     isSubscribed(channelId: UserId): Promise<boolean>;
     markNotificationsRead(): Promise<void>;
     publishVideo(videoId: bigint): Promise<Video>;
+    recordVideoView(videoId: bigint): Promise<bigint>;
     registerStorageProvider(providerId: string): Promise<void>;
-    saveProfile(displayName: string, username: string, avatar: string | null, bio: string | null): Promise<User>;
+    saveProfile(displayName: string, username: string, avatar: ExternalBlob | null, removeAvatar: boolean, bio: string | null): Promise<User>;
     schema(): Promise<string>;
     subscribe(channelId: UserId): Promise<void>;
     unsubscribe(channelId: UserId): Promise<void>;

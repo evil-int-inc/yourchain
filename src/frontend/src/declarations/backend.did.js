@@ -68,6 +68,7 @@ export const Video = IDL.Record({
   'description' : IDL.Opt(IDL.Text),
   'fileSize' : IDL.Nat,
   'filename' : IDL.Text,
+  'viewCount' : IDL.Nat,
   'isPrivate' : IDL.Bool,
 });
 export const Value = IDL.Variant({
@@ -89,7 +90,7 @@ export const User = IDL.Record({
   'username' : IDL.Text,
   'displayName' : IDL.Text,
   'createdAt' : Timestamp,
-  'avatar' : IDL.Opt(IDL.Text),
+  'avatar' : IDL.Opt(ExternalBlob),
 });
 export const Cursor = IDL.Nat;
 export const Page = IDL.Record({
@@ -178,9 +179,10 @@ export const idlService = IDL.Service({
   'isSubscribed' : IDL.Func([UserId], [IDL.Bool], ['query']),
   'markNotificationsRead' : IDL.Func([], [], []),
   'publishVideo' : IDL.Func([IDL.Nat], [Video], []),
+  'recordVideoView' : IDL.Func([IDL.Nat], [IDL.Nat], []),
   'registerStorageProvider' : IDL.Func([IDL.Text], [], []),
   'saveProfile' : IDL.Func(
-      [IDL.Text, IDL.Text, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
+      [IDL.Text, IDL.Text, IDL.Opt(ExternalBlob), IDL.Bool, IDL.Opt(IDL.Text)],
       [User],
       [],
     ),
@@ -252,6 +254,7 @@ export const idlFactory = ({ IDL }) => {
     'description' : IDL.Opt(IDL.Text),
     'fileSize' : IDL.Nat,
     'filename' : IDL.Text,
+    'viewCount' : IDL.Nat,
     'isPrivate' : IDL.Bool,
   });
   const Value = IDL.Variant({
@@ -273,7 +276,7 @@ export const idlFactory = ({ IDL }) => {
     'username' : IDL.Text,
     'displayName' : IDL.Text,
     'createdAt' : Timestamp,
-    'avatar' : IDL.Opt(IDL.Text),
+    'avatar' : IDL.Opt(ExternalBlob),
   });
   const Cursor = IDL.Nat;
   const Page = IDL.Record({
@@ -362,9 +365,16 @@ export const idlFactory = ({ IDL }) => {
     'isSubscribed' : IDL.Func([UserId], [IDL.Bool], ['query']),
     'markNotificationsRead' : IDL.Func([], [], []),
     'publishVideo' : IDL.Func([IDL.Nat], [Video], []),
+    'recordVideoView' : IDL.Func([IDL.Nat], [IDL.Nat], []),
     'registerStorageProvider' : IDL.Func([IDL.Text], [], []),
     'saveProfile' : IDL.Func(
-        [IDL.Text, IDL.Text, IDL.Opt(IDL.Text), IDL.Opt(IDL.Text)],
+        [
+          IDL.Text,
+          IDL.Text,
+          IDL.Opt(ExternalBlob),
+          IDL.Bool,
+          IDL.Opt(IDL.Text),
+        ],
         [User],
         [],
       ),

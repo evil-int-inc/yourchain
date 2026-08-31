@@ -8,10 +8,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { config } from "@/config";
 import { useCurrentUser } from "@/hooks/useCurrentUser";
 import { userService } from "@/services/users";
-import { formatDate, timestampToDate } from "@/utils/format";
+import { formatBytes, formatDate, timestampToDate } from "@/utils/format";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, CheckCircle2, UserCog } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ImagePlus,
+  Trash2,
+  UserCog,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 function ProfileSkeleton() {
@@ -39,6 +45,18 @@ function ProfileSkeleton() {
   );
 }
 
+function validateAvatar(file: File): string | undefined {
+  if (file.size > config.maxAvatarSizeBytes) {
+    return `Avatar exceeds the ${formatBytes(config.maxAvatarSizeBytes)} limit.`;
+  }
+  if (
+    !(config.acceptedAvatarMimeTypes as readonly string[]).includes(file.type)
+  ) {
+    return "Unsupported image format. Use JPEG, PNG, or WebP.";
+  }
+  return undefined;
+}
+
 export function ProfilePage() {
   const { actor, isFetching } = useActor(createActor);
   const queryClient = useQueryClient();
@@ -49,11 +67,15 @@ export function ProfilePage() {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [bio, setBio] = useState("");
-  const [avatar, setAvatar] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreviewUrl, setAvatarPreviewUrl] = useState<string | null>(null);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
+  const [removeAvatar, setRemoveAvatar] = useState(false);
   const [usernameTaken, setUsernameTaken] = useState(false);
   const [usernameChecking, setUsernameChecking] = useState(false);
   const [saved, setSaved] = useState(false);
   const initializedRef = useRef(false);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   // One-time initialization from the loaded profile (editing an existing record).
   useEffect(() => {
@@ -62,8 +84,17 @@ export function ProfilePage() {
     setDisplayName(profile.displayName);
     setUsername(profile.username);
     setBio(profile.bio ?? "");
-    setAvatar(profile.avatar ?? "");
   }, [profile]);
+
+  useEffect(() => {
+    if (!avatarFile || typeof URL.createObjectURL !== "function") {
+      setAvatarPreviewUrl(null);
+      return;
+    }
+    const previewUrl = URL.createObjectURL(avatarFile);
+    setAvatarPreviewUrl(previewUrl);
+    return () => URL.revokeObjectURL(previewUrl);
+  }, [avatarFile]);
 
   // Debounced username uniqueness check against the backend.
   useEffect(() => {
@@ -92,15 +123,23 @@ export function ProfilePage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!actor) throw new Error("Backend is not ready");
+      const uploadedAvatar = avatarFile
+        ? await userService.createAvatar(avatarFile)
+        : null;
       return userService.saveProfile(actor, {
         displayName: displayName.trim(),
         username: username.trim(),
-        avatar: avatar.trim() || null,
+        avatar: uploadedAvatar,
+        removeAvatar,
         bio: bio.trim() || null,
       });
     },
-    onSuccess: () => {
+    onSuccess: (savedProfile) => {
       setSaved(true);
+      setAvatarFile(null);
+      setRemoveAvatar(false);
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
+      queryClient.setQueryData(["profile"], savedProfile);
       void queryClient.invalidateQueries({ queryKey: ["profile"] });
     },
   });
@@ -114,9 +153,18 @@ export function ProfilePage() {
     !usernameTaken;
   const bioValid = bio.length <= config.maxBioLength;
   const canSave =
-    displayNameValid && usernameValid && bioValid && !saveMutation.isPending;
+    displayNameValid &&
+    usernameValid &&
+    bioValid &&
+    !avatarError &&
+    !saveMutation.isPending;
 
   const memberSince = formatDate(timestampToDate(profile?.createdAt ?? 0n));
+  const storedAvatarUrl =
+    !removeAvatar && profile?.avatar
+      ? profile.avatar.getDirectURL()
+      : undefined;
+  const displayedAvatarUrl = avatarPreviewUrl ?? storedAvatarUrl;
 
   if (profileQuery.isLoading || (isFetching && !profileQuery.data)) {
     return (
@@ -145,10 +193,11 @@ export function ProfilePage() {
       <div className="mx-auto w-full max-w-2xl space-y-6">
         <header className="flex items-center gap-4">
           <Avatar
-            src={avatar || undefined}
+            src={displayedAvatarUrl}
             name={displayName || undefined}
             size="xl"
             alt="Your channel avatar"
+            className="size-20"
           />
           <div className="min-w-0">
             <h1 className="font-display text-2xl font-semibold text-foreground">
@@ -266,15 +315,85 @@ export function ProfilePage() {
             </p>
           </div>
 
-          <Input
-            id="avatar"
-            data-ocid="avatar_input"
-            label="Avatar URL"
-            value={avatar}
-            onChange={(event) => setAvatar(event.target.value)}
-            placeholder="https://…"
-            hint="Optional link to your avatar image."
-          />
+          <div className="space-y-2">
+            <span className="block text-sm font-medium text-foreground">
+              Channel avatar
+            </span>
+            <div className="flex flex-col gap-4 rounded-box border border-border bg-base-100 p-4 sm:flex-row sm:items-center">
+              <Avatar
+                src={displayedAvatarUrl}
+                name={displayName || undefined}
+                size="xl"
+                alt="Channel avatar preview"
+                className="size-20"
+              />
+              <div className="min-w-0 flex-1 space-y-2">
+                <input
+                  ref={avatarInputRef}
+                  id="avatar"
+                  type="file"
+                  accept={config.acceptedAvatarMimeTypes.join(",")}
+                  data-ocid="avatar_input"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (!file) return;
+                    const error = validateAvatar(file);
+                    setAvatarError(error ?? null);
+                    if (!error) {
+                      setAvatarFile(file);
+                      setRemoveAvatar(false);
+                      setSaved(false);
+                    }
+                  }}
+                />
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    data-ocid="avatar_upload_button"
+                    onClick={() => avatarInputRef.current?.click()}
+                  >
+                    <ImagePlus className="size-4" aria-hidden="true" />
+                    Upload image
+                  </Button>
+                  {displayedAvatarUrl ? (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      data-ocid="avatar_remove_button"
+                      onClick={() => {
+                        setAvatarFile(null);
+                        setRemoveAvatar(true);
+                        setAvatarError(null);
+                        setSaved(false);
+                        if (avatarInputRef.current) {
+                          avatarInputRef.current.value = "";
+                        }
+                      }}
+                    >
+                      <Trash2 className="size-4" aria-hidden="true" />
+                      Remove
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  JPEG, PNG, or WebP up to{" "}
+                  {formatBytes(config.maxAvatarSizeBytes)}.
+                </p>
+                {avatarFile ? (
+                  <p className="truncate text-sm text-foreground">
+                    {avatarFile.name}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            {avatarError ? (
+              <p data-ocid="avatar_error" className="text-sm text-error">
+                {avatarError}
+              </p>
+            ) : null}
+          </div>
 
           <div className="flex items-center justify-end gap-3 pt-2">
             <Button

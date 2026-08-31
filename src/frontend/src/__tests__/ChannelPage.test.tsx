@@ -32,12 +32,6 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-vi.mock("@/services/storage", () => ({
-  storageService: {
-    getDirectURL: vi.fn(async () => "https://example.com/asset"),
-  },
-}));
-
 const useQueryMock = vi.fn();
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: unknown) => useQueryMock(options),
@@ -61,6 +55,7 @@ function makeVideo(id: bigint, title: string): Video {
     filename: `video-${id}.mp4`,
     mimeType: "video/mp4",
     fileSize: 100n,
+    viewCount: 0n,
     isPrivate: false,
   };
 }

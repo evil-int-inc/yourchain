@@ -32,6 +32,7 @@ module {
       filename;
       mimeType;
       fileSize;
+      viewCount = 0;
       isPrivate;
       createdAt = now;
       publishedAt = null;
@@ -56,6 +57,13 @@ module {
 
   public func getVideo(videos : Map.Map<Nat, Videos.Video>, videoId : Nat) : ?Videos.Video {
     videos.get(videoId);
+  };
+
+  public func recordView(videos : Map.Map<Nat, Videos.Video>, videoId : Nat) : Nat {
+    let video = videos.get(videoId) ?? Runtime.trap("Video not found");
+    let updated = { video with viewCount = video.viewCount + 1 };
+    videos.add(videoId, updated);
+    updated.viewCount;
   };
 
   public func getMyVideos(

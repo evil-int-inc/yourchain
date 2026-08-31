@@ -32,6 +32,7 @@ function makeVideo(): Video {
     filename: "clip.mp4",
     mimeType: "video/mp4",
     fileSize: 100n,
+    viewCount: 12n,
     isPrivate: false,
   };
 }
@@ -44,6 +45,12 @@ describe("VideoCard", () => {
       "Anonymous",
     );
     expect(screen.queryByTestId("channel_link")).not.toBeInTheDocument();
+    expect(screen.getByTestId("video_views")).toHaveTextContent("12 views");
+    expect(screen.getByTestId("video_actions")).toBeInTheDocument();
+    expect(screen.getByTestId("download_video_button")).toBeInTheDocument();
+    expect(screen.getByTestId("download_preview_button")).toBeDisabled();
+    expect(screen.getByTestId("copy_title_button")).toBeInTheDocument();
+    expect(screen.getByTestId("copy_description_button")).toBeDisabled();
   });
 
   it("uses the uploaded preview's direct URL for the thumbnail", () => {

@@ -19,6 +19,7 @@ function makeVideo(id: bigint, title: string): Video {
     filename: `video-${id}.mp4`,
     mimeType: "video/mp4",
     fileSize: 100n,
+    viewCount: 0n,
     isPrivate: false,
   };
 }

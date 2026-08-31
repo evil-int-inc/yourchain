@@ -19,6 +19,7 @@ module {
     filename : Text;
     mimeType : Text;
     fileSize : Nat;
+    viewCount : Nat;
     isPrivate : Bool;
     createdAt : Common.Timestamp;
     publishedAt : ?Common.Timestamp;

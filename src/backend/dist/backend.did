@@ -33,6 +33,7 @@ type Video =
    thumbnail: opt ExternalBlob;
    title: text;
    video: ExternalBlob;
+   viewCount: nat;
  };
 type Value = 
  variant {
@@ -52,7 +53,7 @@ type UserRole =
 type UserId = principal;
 type User = 
  record {
-   avatar: opt text;
+   avatar: opt ExternalBlob;
    bio: opt text;
    createdAt: Timestamp;
    displayName: text;
@@ -164,9 +165,10 @@ service : {
   isSubscribed: (channelId: UserId) -> (bool) query;
   markNotificationsRead: () -> ();
   publishVideo: (videoId: nat) -> (Video);
+  recordVideoView: (videoId: nat) -> (nat);
   registerStorageProvider: (providerId: text) -> ();
-  saveProfile: (displayName: text, username: text, avatar: opt text, bio:
-   opt text) -> (User);
+  saveProfile: (displayName: text, username: text, avatar: opt ExternalBlob,
+   removeAvatar: bool, bio: opt text) -> (User);
   schema: () -> (text) query;
   subscribe: (channelId: UserId) -> ();
   unsubscribe: (channelId: UserId) -> ();

@@ -10,7 +10,6 @@ import { VideoGrid } from "@/components/video/VideoGrid";
 import { config } from "@/config";
 import { useAuth } from "@/hooks/useAuth";
 import { useInfiniteVideos } from "@/hooks/useInfiniteVideos";
-import { storageService } from "@/services/storage";
 import { userService } from "@/services/users";
 import { videoService } from "@/services/videos";
 import { formatDate, timestampToDate } from "@/utils/format";
@@ -19,7 +18,7 @@ import { Principal } from "@icp-sdk/core/principal";
 import { useQuery } from "@tanstack/react-query";
 import { useParams } from "@tanstack/react-router";
 import { Clapperboard } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback } from "react";
 
 /** Layout-matched skeleton for the channel header while the profile loads. */
 function ChannelHeaderSkeleton() {
@@ -94,27 +93,7 @@ export function ChannelPage() {
 
   const channel = channelQuery.data;
 
-  // Resolve the avatar asset id to a direct URL when present.
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  useEffect(() => {
-    let cancelled = false;
-    if (!channel?.avatar) {
-      setAvatarUrl(null);
-      return;
-    }
-    setAvatarUrl(null);
-    void storageService
-      .getDirectURL(channel.avatar)
-      .then((url) => {
-        if (!cancelled) setAvatarUrl(url);
-      })
-      .catch(() => {
-        if (!cancelled) setAvatarUrl(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [channel?.avatar]);
+  const avatarUrl = channel?.avatar?.getDirectURL() ?? null;
 
   const fetcher = useCallback(
     (cursor: bigint, limit: bigint) => {

@@ -1,4 +1,5 @@
 import { createActor } from "@/backend";
+import { VideoActions } from "@/components/video/VideoActions";
 import { userService } from "@/services/users";
 import type { Video } from "@/types";
 import {
@@ -49,19 +50,19 @@ export function VideoCard({
 
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
   const relativeTime = timeAgo(publishedDate);
-  const views = viewCount !== undefined ? formatCount(viewCount) : "—";
+  const views = formatCount(viewCount ?? video.viewCount);
 
   return (
     <article
       data-ocid="video_card"
-      className="group flex flex-col overflow-hidden rounded-box border border-border bg-card transition-smooth hover:shadow-elevated"
+      className="group flex flex-col rounded-box border border-border bg-card transition-smooth hover:shadow-elevated"
     >
       <Link
         to="/watch/$videoId"
         params={{ videoId: video.id.toString() }}
         data-ocid="video_thumbnail_link"
         aria-label={`Watch ${video.title}`}
-        className="relative block aspect-video overflow-hidden bg-muted"
+        className="relative block aspect-video overflow-hidden rounded-t-box bg-muted"
       >
         {thumbnailUrl ? (
           <img
@@ -138,7 +139,7 @@ export function VideoCard({
           </span>
         )}
 
-        <p className="text-xs text-muted-foreground">
+        <p data-ocid="video_views" className="text-xs text-muted-foreground">
           {views} views
           {relativeTime ? (
             <>
@@ -149,6 +150,8 @@ export function VideoCard({
             </>
           ) : null}
         </p>
+
+        <VideoActions video={video} compact className="mt-auto pt-1" />
       </div>
     </article>
   );

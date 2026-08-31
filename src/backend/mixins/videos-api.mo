@@ -101,6 +101,14 @@ mixin (
     };
   };
 
+  public shared ({ caller }) func recordVideoView(videoId : Nat) : async Nat {
+    let video = VideosLib.getVideo(videos, videoId) ?? Runtime.trap("Video not found");
+    if (video.status != #published or (video.isPrivate and video.ownerId != caller)) {
+      Runtime.trap("Video not available");
+    };
+    VideosLib.recordView(videos, videoId);
+  };
+
   public query ({ caller }) func getMyVideos(cursor : Common.Cursor, limit : Nat) : async Common.Page<Videos.Video> {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can perform this action");

@@ -65,6 +65,36 @@ describe("YourChain backend", () => {
     expect(page.nextCursor).toEqual([]);
   });
 
+  it("stores uploaded avatars and can explicitly remove them", async () => {
+    actor.setPrincipal(alice);
+    const created = await actor.saveProfile(
+      "Alice",
+      "alice",
+      [new Uint8Array([9, 8, 7])],
+      false,
+      ["Creator"],
+    );
+    expect(created.avatar).toEqual([new Uint8Array([9, 8, 7])]);
+
+    const retained = await actor.saveProfile(
+      "Alice",
+      "alice",
+      [],
+      false,
+      ["Updated"],
+    );
+    expect(retained.avatar).toEqual([new Uint8Array([9, 8, 7])]);
+
+    const removed = await actor.saveProfile(
+      "Alice",
+      "alice",
+      [],
+      true,
+      ["Updated"],
+    );
+    expect(removed.avatar).toEqual([]);
+  });
+
   it("creates a stored video reference and surfaces the public video in feeds", async () => {
     actor.setPrincipal(alice);
 
@@ -82,6 +112,7 @@ describe("YourChain backend", () => {
     expect(draft.title).toBe("My clip");
     expect(draft.ownerId).toEqual(alice);
     expect(draft.filename).toBe("clip.mp4");
+    expect(draft.viewCount).toBe(0n);
     expect(draft.isPrivate).toBe(false);
 
     const published = await actor.publishVideo(draft.id);
@@ -100,6 +131,9 @@ describe("YourChain backend", () => {
     expect(channel.items).toContainEqual(
       expect.objectContaining({ id: draft.id, ownerId: alice }),
     );
+
+    expect(await actor.recordVideoView(draft.id)).toBe(1n);
+    expect((await actor.getVideo(draft.id))[0]?.viewCount).toBe(1n);
   });
 
   it("supports subscribe/unsubscribe and rejects self-subscription", async () => {
@@ -143,6 +177,9 @@ describe("YourChain backend", () => {
     expect(subscriptionFeed.items.some((video) => video.id === privateVideo.id)).toBe(false);
     expect(channel.items.some((video) => video.id === privateVideo.id)).toBe(false);
     expect(await actor.getVideo(privateVideo.id)).toEqual([]);
+    await expect(actor.recordVideoView(privateVideo.id)).rejects.toThrow(
+      /Video not available/,
+    );
 
     const notifications = await actor.getNotifications(0n, 100n);
     expect(
@@ -155,6 +192,7 @@ describe("YourChain backend", () => {
 
     actor.setPrincipal(alice);
     expect((await actor.getVideo(privateVideo.id))[0]?.id).toBe(privateVideo.id);
+    expect(await actor.recordVideoView(privateVideo.id)).toBe(1n);
     const ownerChannel = await actor.getChannelVideos(alice, 0n, 100n);
     expect(ownerChannel.items).toContainEqual(
       expect.objectContaining({ id: privateVideo.id, isPrivate: true }),

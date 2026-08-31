@@ -4,17 +4,24 @@ import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ErrorState } from "@/components/ui/ErrorState";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { VideoActions } from "@/components/video/VideoActions";
 import { VideoPlayer } from "@/components/video/VideoPlayer";
 import { useAuth } from "@/services/hooks";
 import { userService } from "@/services/users";
 import { videoService } from "@/services/videos";
 import { type User, type Video, VideoStatus } from "@/types";
-import { formatBytes, timeAgo, timestampToDate } from "@/utils/format";
+import {
+  formatBytes,
+  formatCount,
+  timeAgo,
+  timestampToDate,
+} from "@/utils/format";
 import { useActor } from "@caffeineai/core-infrastructure";
 import type { Principal } from "@icp-sdk/core/principal";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useParams } from "@tanstack/react-router";
-import { LockKeyhole, VideoOff } from "lucide-react";
+import { Eye, LockKeyhole, VideoOff } from "lucide-react";
+import { useCallback, useRef } from "react";
 
 /** Fetches a single video by id from the backend. */
 function useGetVideo(videoId: bigint, viewerKey: string) {
@@ -45,9 +52,13 @@ function useGetChannel(ownerId: Principal | null) {
 export function WatchPage() {
   const { videoId } = useParams({ from: "/watch/$videoId" });
   const { principal } = useAuth();
+  const { actor } = useActor(createActor);
+  const queryClient = useQueryClient();
+  const recordedViewRef = useRef<string | null>(null);
 
   const parsedId = /^\d+$/.test(videoId) ? BigInt(videoId) : null;
-  const videoQuery = useGetVideo(parsedId ?? 0n, principal ?? "anonymous");
+  const viewerKey = principal ?? "anonymous";
+  const videoQuery = useGetVideo(parsedId ?? 0n, viewerKey);
   const video = videoQuery.data ?? null;
 
   const ownerId = video?.ownerId ?? null;
@@ -57,6 +68,23 @@ export function WatchPage() {
   const isLoading = videoQuery.isLoading || (!!video && channelQuery.isLoading);
   const isOwnChannel =
     !!principal && !!ownerId && principal === ownerId.toString();
+
+  const recordFirstPlay = useCallback(() => {
+    if (!actor || !video) return;
+    const id = video.id.toString();
+    if (recordedViewRef.current === id) return;
+    recordedViewRef.current = id;
+
+    void videoService
+      .recordVideoView(actor, video.id)
+      .then((viewCount) => {
+        queryClient.setQueryData<Video | null>(
+          ["video", id, viewerKey],
+          (current) => (current ? { ...current, viewCount } : current),
+        );
+      })
+      .catch(() => undefined);
+  }, [actor, queryClient, video, viewerKey]);
 
   if (videoQuery.isError) {
     return (
@@ -106,7 +134,11 @@ export function WatchPage() {
 
   return (
     <div className="mx-auto max-w-5xl p-4 sm:p-6">
-      <VideoPlayer video={video} />
+      <VideoPlayer
+        key={video.id.toString()}
+        video={video}
+        onPlay={recordFirstPlay}
+      />
 
       <div className="mt-4">
         <h1
@@ -116,19 +148,27 @@ export function WatchPage() {
           {video.title}
         </h1>
 
-        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
-          <span data-ocid="video_size">{formatBytes(video.fileSize)}</span>
-          <span aria-hidden="true">•</span>
-          <span data-ocid="video_date">{timeAgo(publishedDate)}</span>
-          {video.isPrivate ? (
-            <>
-              <span aria-hidden="true">•</span>
-              <span className="flex items-center gap-1 text-info">
-                <LockKeyhole className="size-3.5" aria-hidden="true" />
-                Private
-              </span>
-            </>
-          ) : null}
+        <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground">
+            <span className="flex items-center gap-1" data-ocid="video_views">
+              <Eye className="size-3.5" aria-hidden="true" />
+              {formatCount(video.viewCount)} views
+            </span>
+            <span aria-hidden="true">•</span>
+            <span data-ocid="video_size">{formatBytes(video.fileSize)}</span>
+            <span aria-hidden="true">•</span>
+            <span data-ocid="video_date">{timeAgo(publishedDate)}</span>
+            {video.isPrivate ? (
+              <>
+                <span aria-hidden="true">•</span>
+                <span className="flex items-center gap-1 text-info">
+                  <LockKeyhole className="size-3.5" aria-hidden="true" />
+                  Private
+                </span>
+              </>
+            ) : null}
+          </div>
+          <VideoActions video={video} />
         </div>
 
         <div className="mt-4 flex flex-col gap-4 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between">
@@ -139,7 +179,11 @@ export function WatchPage() {
               data-ocid="channel_link"
               className="group flex min-w-0 items-center gap-3"
             >
-              <Avatar name={channelName} size="md" />
+              <Avatar
+                src={channel.avatar?.getDirectURL()}
+                name={channelName}
+                size="md"
+              />
               <span className="min-w-0">
                 <span className="block truncate text-sm font-medium text-foreground group-hover:text-primary">
                   {channelName}

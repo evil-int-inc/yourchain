@@ -40,7 +40,7 @@ subscriptions, and per-user notifications. It exposes:
 - `getChannel(userId : Principal) : async ?User`
 - `getChannelByUsername(username : Text) : async ?User`
 - `getCallerProfile() : async ?User`
-- `saveProfile(displayName : Text, username : Text, avatar : ?Text, bio : ?Text) : async User`
+- `saveProfile(displayName : Text, username : Text, avatar : ?ExternalBlob, removeAvatar : Bool, bio : ?Text) : async User`
 
 ### Video & storage
 
@@ -48,6 +48,7 @@ subscriptions, and per-user notifications. It exposes:
 - `publishVideo(videoId : Nat) : async Video`
 - `deleteVideo(videoId : Nat) : async ()`
 - `getVideo(videoId : Nat) : async ?Video`
+- `recordVideoView(videoId : Nat) : async Nat`
 - `getMyVideos(cursor : Nat, limit : Nat) : async Page<Video>`
 - `getStorageProviders() : async [Text]`
 - `registerStorageProvider(providerId : Text) : async ()`
@@ -139,9 +140,9 @@ expires.
 - **`NotificationKind`**: `#newSubscriber { channelId }` or
   `#newVideo { channelId; videoId }`.
 - **`UserRole`**: `#admin`, `#user`, `#guest`.
-- **Optional fields**: `avatar`, `bio`, and `description` are `?Text`;
-  `thumbnail` is `?ExternalBlob`; `publishedAt` is `?Int`. `null` means absent.
-- **`video` / `thumbnail`** are immutable object-storage references. Generated
+- **Optional fields**: `bio` and `description` are `?Text`; `avatar` and
+  `thumbnail` are `?ExternalBlob`; `publishedAt` is `?Int`. `null` means absent.
+- **`video` / `thumbnail` / `avatar`** are immutable object-storage references. Generated
   frontend bindings expose them as `ExternalBlob`; use `getDirectURL()` for
   browser playback or image display.
 
@@ -161,6 +162,10 @@ Channel pages also return only public videos, except that the channel owner
 can see their own private published videos. `getVideo` returns a private video
 only to its owner, so privacy is enforced before media references reach the
 frontend.
+
+`recordVideoView(videoId)` increments the durable view counter after playback
+starts. It accepts published public videos and private videos viewed by their
+owner, and returns the updated count.
 
 ### Pagination
 
@@ -183,7 +188,11 @@ returns an empty page with `nextCursor = null`.
   call, so call it once.
 - **`markNotificationsRead`** is idempotent.
 - **`saveProfile`** upserts the caller's profile. It traps `Username already
-  taken` if the requested `username` is held by another user.
+  taken` if the requested `username` is held by another user. Supplying an
+  avatar replaces it; otherwise `removeAvatar = true` removes the current one
+  and `false` preserves it.
+- **`recordVideoView` is not idempotent.** Call it only for the first playback
+  event in a watch-page visit.
 
 ## Errors, traps, and limits
 
@@ -191,10 +200,12 @@ returns an empty page with `nextCursor = null`.
   can perform this action`, `Unauthorized: Only admins can perform this
   action`, `Unauthorized: Not the video owner`, `User is not registered`,
   `Cannot subscribe to yourself`, `Username already taken`, `Video not found`,
+  `Video not available`,
   and validation messages for invalid title, filename, MIME type, description,
   or file size.
 - **Size limits**: videos are limited to 1 GB by both the frontend and
-  `createVideo`; thumbnails are limited to 20 MB by the frontend.
+  `createVideo`; thumbnails are limited to 20 MB and avatars to 5 MB by the
+  frontend.
 - **Ownership**: `publishVideo` and `deleteVideo` require the caller to own the
   video. Private reads expose the record only to that same owner.
 

@@ -54,7 +54,7 @@ export interface User {
   'username' : string,
   'displayName' : string,
   'createdAt' : Timestamp,
-  'avatar' : [] | [string],
+  'avatar' : [] | [ExternalBlob],
 }
 export type UserId = Principal;
 export type UserRole = { 'admin' : null } |
@@ -79,6 +79,7 @@ export interface Video {
   'description' : [] | [string],
   'fileSize' : bigint,
   'filename' : string,
+  'viewCount' : bigint,
   'isPrivate' : boolean,
 }
 export type VideoStatus = { 'deleted' : null } |
@@ -153,9 +154,10 @@ export interface _SERVICE {
   'isSubscribed' : ActorMethod<[UserId], boolean>,
   'markNotificationsRead' : ActorMethod<[], undefined>,
   'publishVideo' : ActorMethod<[bigint], Video>,
+  'recordVideoView' : ActorMethod<[bigint], bigint>,
   'registerStorageProvider' : ActorMethod<[string], undefined>,
   'saveProfile' : ActorMethod<
-    [string, string, [] | [string], [] | [string]],
+    [string, string, [] | [ExternalBlob], boolean, [] | [string]],
     User
   >,
   'schema' : ActorMethod<[], string>,

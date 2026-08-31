@@ -46,6 +46,11 @@ export class VideoService {
     return actor.getVideo(videoId);
   }
 
+  /** Records the first playback and returns the durable view count. */
+  recordVideoView(actor: Backend, videoId: bigint): Promise<bigint> {
+    return actor.recordVideoView(videoId);
+  }
+
   /** Deletes a video owned by the caller. */
   deleteVideo(actor: Backend, videoId: bigint): Promise<void> {
     return actor.deleteVideo(videoId);

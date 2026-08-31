@@ -2,6 +2,7 @@ import Runtime "mo:core/Runtime";
 import Map "mo:core/Map";
 import Common "../types/common";
 import Users "../types/users";
+import Storage "mo:caffeineai-object-storage/Storage";
 
 module {
   public func createUser(
@@ -10,7 +11,7 @@ module {
     id : Common.UserId,
     displayName : Text,
     username : Text,
-    avatar : ?Text,
+    avatar : ?Storage.ExternalBlob,
     bio : ?Text,
     now : Common.Timestamp,
   ) : Users.User {
@@ -41,7 +42,7 @@ module {
     id : Common.UserId,
     displayName : Text,
     username : Text,
-    avatar : ?Text,
+    avatar : ?Storage.ExternalBlob,
     bio : ?Text,
   ) : Users.User {
     let existing = users.get(id) ?? Runtime.trap("User not found");

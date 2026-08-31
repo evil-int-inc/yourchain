@@ -2,7 +2,7 @@ import { ExternalBlob } from "@/backend";
 import { WatchPage } from "@/pages/WatchPage";
 import { VideoStatus } from "@/types";
 import type { Video } from "@/types";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 // Mock the actor infrastructure and auth hooks.
@@ -34,17 +34,11 @@ vi.mock("@tanstack/react-router", () => ({
   ),
 }));
 
-// Mock the storage service so no network/asset calls happen.
-vi.mock("@/services/storage", () => ({
-  storageService: {
-    getDirectURL: vi.fn(async () => "https://example.com/asset"),
-  },
-}));
-
 // Mock react-query's useQuery to control the video and channel data.
 const useQueryMock = vi.fn();
 vi.mock("@tanstack/react-query", () => ({
   useQuery: (options: unknown) => useQueryMock(options),
+  useQueryClient: () => ({ setQueryData: vi.fn() }),
 }));
 
 function makePublishedVideo(): Video {
@@ -59,6 +53,7 @@ function makePublishedVideo(): Video {
     filename: "clip.mp4",
     mimeType: "video/mp4",
     fileSize: 100n,
+    viewCount: 7n,
     isPrivate: false,
     description: "A great description",
   };
@@ -93,6 +88,13 @@ describe("WatchPage", () => {
       "src",
       "https://example.com/video",
     );
+    expect(screen.getByTestId("video_element")).toHaveAttribute("autoplay");
+    expect(screen.getByTestId("video_element")).toHaveProperty("muted", true);
+    expect(screen.getByText("Loading video…")).toBeInTheDocument();
+    fireEvent.canPlay(screen.getByTestId("video_element"));
+    expect(screen.queryByText("Loading video…")).not.toBeInTheDocument();
+    expect(screen.getByTestId("video_views")).toHaveTextContent("7 views");
+    expect(screen.getByTestId("video_actions")).toBeInTheDocument();
   });
 
   it("shows an unavailable state for a non-published video", async () => {

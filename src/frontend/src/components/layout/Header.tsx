@@ -48,6 +48,7 @@ export function Header({ onOpenSidebar }: HeaderProps) {
 
   const displayName =
     profile?.displayName ?? profile?.username ?? "Your channel";
+  const avatarUrl = profile?.avatar?.getDirectURL();
   const ThemeIcon =
     themeChoice === "system" ? Monitor : theme === "black" ? Moon : Sun;
 
@@ -102,7 +103,12 @@ export function Header({ onOpenSidebar }: HeaderProps) {
             className="hidden min-w-0 items-center gap-2 lg:flex"
             data-ocid="layout.user_identity"
           >
-            <Avatar name={displayName} alt={displayName} size="sm" />
+            <Avatar
+              src={avatarUrl}
+              name={displayName}
+              alt={displayName}
+              size="sm"
+            />
             <span className="max-w-40 truncate text-sm font-medium">
               {displayName}
             </span>
@@ -182,7 +188,12 @@ export function Header({ onOpenSidebar }: HeaderProps) {
               aria-label="Account menu"
               className="btn btn-ghost btn-circle"
             >
-              <Avatar name={displayName} alt={displayName} size="sm" />
+              <Avatar
+                src={avatarUrl}
+                name={displayName}
+                alt={displayName}
+                size="sm"
+              />
             </button>
             <ul
               data-ocid="avatar_menu"

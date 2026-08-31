@@ -91,7 +91,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
   return (
     <aside
       data-ocid="sidebar"
-      className="flex min-h-full w-64 flex-col border-r border-base-300 bg-base-100"
+      className="flex h-svh min-h-0 w-64 flex-col overflow-hidden border-r border-base-300 bg-base-100"
     >
       <div className="flex h-16 items-center justify-between border-b border-base-300 px-4">
         <Link
@@ -118,7 +118,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
         </button>
       </div>
 
-      <nav className="flex-1 p-3" aria-label="Primary">
+      <nav className="min-h-0 flex-1 overflow-y-auto p-3" aria-label="Primary">
         <ul className="menu menu-lg w-full gap-1 p-0">
           {navItems.map((item) => {
             const active = isActive(pathname, item.match);

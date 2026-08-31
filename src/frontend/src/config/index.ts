@@ -12,6 +12,9 @@ export const config = {
   /** Maximum accepted thumbnail image size in bytes (20 MB). */
   maxThumbnailSizeBytes: 20_971_520,
 
+  /** Maximum accepted channel avatar size in bytes (5 MB). */
+  maxAvatarSizeBytes: 5_242_880,
+
   /** Number of videos requested per feed / pagination page. */
   feedPageSize: 12,
 
@@ -26,6 +29,9 @@ export const config = {
 
   /** Accepted thumbnail MIME types for upload. */
   acceptedThumbnailMimeTypes: ["image/jpeg", "image/png", "image/webp"],
+
+  /** Accepted channel avatar MIME types. */
+  acceptedAvatarMimeTypes: ["image/jpeg", "image/png", "image/webp"],
 
   /** Maximum length of a video title. */
   maxTitleLength: 100,

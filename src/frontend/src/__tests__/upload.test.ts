@@ -15,6 +15,7 @@ function makeDraft(id: bigint, title: string, isPrivate = false): Video {
     filename: "clip.mp4",
     mimeType: "video/mp4",
     fileSize: 100n,
+    viewCount: 0n,
     isPrivate,
   };
 }

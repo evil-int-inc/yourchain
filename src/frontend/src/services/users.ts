@@ -1,11 +1,12 @@
-import type { Backend } from "@/backend";
+import { type Backend, ExternalBlob } from "@/backend";
 import type { User, UserId } from "@/types";
 
 /** Input for saving a channel profile. */
 export interface SaveProfileInput {
   displayName: string;
   username: string;
-  avatar: string | null;
+  avatar: ExternalBlob | null;
+  removeAvatar: boolean;
   bio: string | null;
 }
 
@@ -27,8 +28,15 @@ export class UserService {
       input.displayName,
       input.username,
       input.avatar,
+      input.removeAvatar,
       input.bio,
     );
+  }
+
+  /** Wraps a selected avatar so generated bindings upload it to object storage. */
+  async createAvatar(file: File): Promise<ExternalBlob> {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    return ExternalBlob.fromBytes(bytes, file.type, file.name);
   }
 }
 

@@ -40,7 +40,10 @@ export function MainLayout() {
         </footer>
       </div>
 
-      <div className="drawer-side z-40">
+      <div
+        className="drawer-side z-40"
+        style={{ overflowX: "hidden", overflowY: "hidden" }}
+      >
         <button
           type="button"
           aria-label="Close sidebar"
