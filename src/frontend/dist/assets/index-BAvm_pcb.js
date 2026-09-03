@@ -33198,20 +33198,33 @@ const Error$1 = Variant({
   })
 });
 const Result__1 = Variant({ "ok": Null, "err": Error$1 });
+const UserId = Principal2;
+const Timestamp = Int;
+const Playlist = Record({
+  "id": Nat,
+  "title": Text,
+  "ownerId": UserId,
+  "createdAt": Timestamp,
+  "updatedAt": Timestamp,
+  "isPrivate": Bool,
+  "videoIds": Vec(Nat)
+});
 const UserRole = Variant({
   "admin": Null,
   "user": Null,
   "guest": Null
 });
 const ExternalBlob2 = Vec(Nat8);
+const PlaylistSelection = Variant({
+  "new": Record({ "title": Text, "isPrivate": Bool }),
+  "existing": Nat
+});
 const VideoStatus$1 = Variant({
   "deleted": Null,
   "published": Null,
   "processing": Null,
   "draft": Null
 });
-const UserId = Principal2;
-const Timestamp = Int;
 const Video = Record({
   "id": Nat,
   "status": VideoStatus$1,
@@ -33227,6 +33240,10 @@ const Video = Record({
   "filename": Text,
   "viewCount": Nat,
   "isPrivate": Bool
+});
+const CreateVideoResult = Record({
+  "video": Video,
+  "playlistId": Opt(Nat)
 });
 const Value = Variant({
   "int": Int,
@@ -33250,6 +33267,21 @@ const User$1 = Record({
   "avatar": Opt(ExternalBlob2)
 });
 const Cursor = Nat;
+const PlaylistSummary = Record({
+  "id": Nat,
+  "title": Text,
+  "thumbnail": Opt(ExternalBlob2),
+  "videoCount": Nat,
+  "firstVideoId": Opt(Nat),
+  "ownerId": UserId,
+  "createdAt": Timestamp,
+  "updatedAt": Timestamp,
+  "isPrivate": Bool
+});
+const Page_2 = Record({
+  "items": Vec(PlaylistSummary),
+  "nextCursor": Opt(Cursor)
+});
 const Page = Record({
   "items": Vec(Video),
   "nextCursor": Opt(Cursor)
@@ -33268,6 +33300,10 @@ const Notification = Record({
 const Page_1 = Record({
   "items": Vec(Notification),
   "nextCursor": Opt(Cursor)
+});
+const PlaylistView = Record({
+  "playlist": PlaylistSummary,
+  "videos": Vec(Video)
 });
 Service({
   "_immutableObjectStorageBlobsAreLive": Func(
@@ -33299,7 +33335,13 @@ Service({
   "_initialize_access_control": Func([], [], []),
   "_internet_identity_sign_in_finish": Func([], [Result__1], []),
   "_internet_identity_sign_in_start": Func([], [Vec(Nat8)], []),
+  "addVideoToPlaylist": Func([Nat, Nat], [Playlist], []),
   "assignCallerUserRole": Func([Principal2, UserRole], [], []),
+  "createPlaylist": Func(
+    [Text, Bool, Opt(Nat)],
+    [Playlist],
+    []
+  ),
   "createVideo": Func(
     [
       Text,
@@ -33309,9 +33351,10 @@ Service({
       Text,
       Text,
       Nat,
-      Bool
+      Bool,
+      Opt(PlaylistSelection)
     ],
-    [Video],
+    [CreateVideoResult],
     []
   ),
   "deleteVideo": Func([Nat], [], []),
@@ -33321,10 +33364,17 @@ Service({
   "getCallerUserRole": Func([], [UserRole], ["query"]),
   "getChannel": Func([UserId], [Opt(User$1)], ["query"]),
   "getChannelByUsername": Func([Text], [Opt(User$1)], ["query"]),
+  "getChannelPlaylists": Func(
+    [UserId, Cursor, Nat],
+    [Page_2],
+    ["query"]
+  ),
   "getChannelVideos": Func([UserId, Cursor, Nat], [Page], ["query"]),
   "getFeed": Func([Cursor, Nat], [Page], ["query"]),
+  "getMyPlaylists": Func([], [Vec(Playlist)], ["query"]),
   "getMyVideos": Func([Cursor, Nat], [Page], ["query"]),
   "getNotifications": Func([Cursor, Nat], [Page_1], ["query"]),
+  "getPlaylist": Func([Nat], [Opt(PlaylistView)], ["query"]),
   "getStorageProviders": Func([], [Vec(Text)], ["query"]),
   "getSubscribedChannels": Func([], [Vec(UserId)], ["query"]),
   "getSubscriberCount": Func([UserId], [Nat], ["query"]),
@@ -33337,6 +33387,7 @@ Service({
   "publishVideo": Func([Nat], [Video], []),
   "recordVideoView": Func([Nat], [Nat], []),
   "registerStorageProvider": Func([Text], [], []),
+  "removeVideoFromPlaylist": Func([Nat, Nat], [Playlist], []),
   "saveProfile": Func(
     [Text, Text, Opt(ExternalBlob2), Bool, Opt(Text)],
     [User$1],
@@ -33380,20 +33431,33 @@ const idlFactory = ({ IDL: IDL2 }) => {
     })
   });
   const Result__12 = IDL2.Variant({ "ok": IDL2.Null, "err": Error2 });
+  const UserId2 = IDL2.Principal;
+  const Timestamp2 = IDL2.Int;
+  const Playlist2 = IDL2.Record({
+    "id": IDL2.Nat,
+    "title": IDL2.Text,
+    "ownerId": UserId2,
+    "createdAt": Timestamp2,
+    "updatedAt": Timestamp2,
+    "isPrivate": IDL2.Bool,
+    "videoIds": IDL2.Vec(IDL2.Nat)
+  });
   const UserRole2 = IDL2.Variant({
     "admin": IDL2.Null,
     "user": IDL2.Null,
     "guest": IDL2.Null
   });
   const ExternalBlob3 = IDL2.Vec(IDL2.Nat8);
+  const PlaylistSelection2 = IDL2.Variant({
+    "new": IDL2.Record({ "title": IDL2.Text, "isPrivate": IDL2.Bool }),
+    "existing": IDL2.Nat
+  });
   const VideoStatus2 = IDL2.Variant({
     "deleted": IDL2.Null,
     "published": IDL2.Null,
     "processing": IDL2.Null,
     "draft": IDL2.Null
   });
-  const UserId2 = IDL2.Principal;
-  const Timestamp2 = IDL2.Int;
   const Video2 = IDL2.Record({
     "id": IDL2.Nat,
     "status": VideoStatus2,
@@ -33409,6 +33473,10 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "filename": IDL2.Text,
     "viewCount": IDL2.Nat,
     "isPrivate": IDL2.Bool
+  });
+  const CreateVideoResult2 = IDL2.Record({
+    "video": Video2,
+    "playlistId": IDL2.Opt(IDL2.Nat)
   });
   const Value2 = IDL2.Variant({
     "int": IDL2.Int,
@@ -33432,6 +33500,21 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "avatar": IDL2.Opt(ExternalBlob3)
   });
   const Cursor2 = IDL2.Nat;
+  const PlaylistSummary2 = IDL2.Record({
+    "id": IDL2.Nat,
+    "title": IDL2.Text,
+    "thumbnail": IDL2.Opt(ExternalBlob3),
+    "videoCount": IDL2.Nat,
+    "firstVideoId": IDL2.Opt(IDL2.Nat),
+    "ownerId": UserId2,
+    "createdAt": Timestamp2,
+    "updatedAt": Timestamp2,
+    "isPrivate": IDL2.Bool
+  });
+  const Page_22 = IDL2.Record({
+    "items": IDL2.Vec(PlaylistSummary2),
+    "nextCursor": IDL2.Opt(Cursor2)
+  });
   const Page2 = IDL2.Record({
     "items": IDL2.Vec(Video2),
     "nextCursor": IDL2.Opt(Cursor2)
@@ -33450,6 +33533,10 @@ const idlFactory = ({ IDL: IDL2 }) => {
   const Page_12 = IDL2.Record({
     "items": IDL2.Vec(Notification2),
     "nextCursor": IDL2.Opt(Cursor2)
+  });
+  const PlaylistView2 = IDL2.Record({
+    "playlist": PlaylistSummary2,
+    "videos": IDL2.Vec(Video2)
   });
   return IDL2.Service({
     "_immutableObjectStorageBlobsAreLive": IDL2.Func(
@@ -33481,7 +33568,13 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "_initialize_access_control": IDL2.Func([], [], []),
     "_internet_identity_sign_in_finish": IDL2.Func([], [Result__12], []),
     "_internet_identity_sign_in_start": IDL2.Func([], [IDL2.Vec(IDL2.Nat8)], []),
+    "addVideoToPlaylist": IDL2.Func([IDL2.Nat, IDL2.Nat], [Playlist2], []),
     "assignCallerUserRole": IDL2.Func([IDL2.Principal, UserRole2], [], []),
+    "createPlaylist": IDL2.Func(
+      [IDL2.Text, IDL2.Bool, IDL2.Opt(IDL2.Nat)],
+      [Playlist2],
+      []
+    ),
     "createVideo": IDL2.Func(
       [
         IDL2.Text,
@@ -33491,9 +33584,10 @@ const idlFactory = ({ IDL: IDL2 }) => {
         IDL2.Text,
         IDL2.Text,
         IDL2.Nat,
-        IDL2.Bool
+        IDL2.Bool,
+        IDL2.Opt(PlaylistSelection2)
       ],
-      [Video2],
+      [CreateVideoResult2],
       []
     ),
     "deleteVideo": IDL2.Func([IDL2.Nat], [], []),
@@ -33503,10 +33597,17 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "getCallerUserRole": IDL2.Func([], [UserRole2], ["query"]),
     "getChannel": IDL2.Func([UserId2], [IDL2.Opt(User2)], ["query"]),
     "getChannelByUsername": IDL2.Func([IDL2.Text], [IDL2.Opt(User2)], ["query"]),
+    "getChannelPlaylists": IDL2.Func(
+      [UserId2, Cursor2, IDL2.Nat],
+      [Page_22],
+      ["query"]
+    ),
     "getChannelVideos": IDL2.Func([UserId2, Cursor2, IDL2.Nat], [Page2], ["query"]),
     "getFeed": IDL2.Func([Cursor2, IDL2.Nat], [Page2], ["query"]),
+    "getMyPlaylists": IDL2.Func([], [IDL2.Vec(Playlist2)], ["query"]),
     "getMyVideos": IDL2.Func([Cursor2, IDL2.Nat], [Page2], ["query"]),
     "getNotifications": IDL2.Func([Cursor2, IDL2.Nat], [Page_12], ["query"]),
+    "getPlaylist": IDL2.Func([IDL2.Nat], [IDL2.Opt(PlaylistView2)], ["query"]),
     "getStorageProviders": IDL2.Func([], [IDL2.Vec(IDL2.Text)], ["query"]),
     "getSubscribedChannels": IDL2.Func([], [IDL2.Vec(UserId2)], ["query"]),
     "getSubscriberCount": IDL2.Func([UserId2], [IDL2.Nat], ["query"]),
@@ -33519,6 +33620,7 @@ const idlFactory = ({ IDL: IDL2 }) => {
     "publishVideo": IDL2.Func([IDL2.Nat], [Video2], []),
     "recordVideoView": IDL2.Func([IDL2.Nat], [IDL2.Nat], []),
     "registerStorageProvider": IDL2.Func([IDL2.Text], [], []),
+    "removeVideoFromPlaylist": IDL2.Func([IDL2.Nat, IDL2.Nat], [Playlist2], []),
     "saveProfile": IDL2.Func(
       [
         IDL2.Text,
@@ -33686,6 +33788,20 @@ class Backend {
       return result;
     }
   }
+  async addVideoToPlaylist(arg0, arg1) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.addVideoToPlaylist(arg0, arg1);
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.addVideoToPlaylist(arg0, arg1);
+      return result;
+    }
+  }
   async assignCallerUserRole(arg0, arg1) {
     if (this.processError) {
       try {
@@ -33700,18 +33816,32 @@ class Backend {
       return result;
     }
   }
-  async createVideo(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7) {
+  async createPlaylist(arg0, arg1, arg2) {
     if (this.processError) {
       try {
-        const result = await this.actor.createVideo(arg0, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg1), await to_candid_ExternalBlob_n15(this._uploadFile, this._downloadFile, arg2), await to_candid_opt_n16(this._uploadFile, this._downloadFile, arg3), arg4, arg5, arg6, arg7);
-        return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.createPlaylist(arg0, arg1, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg2));
+        return result;
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.createVideo(arg0, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg1), await to_candid_ExternalBlob_n15(this._uploadFile, this._downloadFile, arg2), await to_candid_opt_n16(this._uploadFile, this._downloadFile, arg3), arg4, arg5, arg6, arg7);
-      return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.createPlaylist(arg0, arg1, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg2));
+      return result;
+    }
+  }
+  async createVideo(arg0, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.createVideo(arg0, to_candid_opt_n15(this._uploadFile, this._downloadFile, arg1), await to_candid_ExternalBlob_n16(this._uploadFile, this._downloadFile, arg2), await to_candid_opt_n17(this._uploadFile, this._downloadFile, arg3), arg4, arg5, arg6, arg7, to_candid_opt_n18(this._uploadFile, this._downloadFile, arg8));
+        return from_candid_CreateVideoResult_n21(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.createVideo(arg0, to_candid_opt_n15(this._uploadFile, this._downloadFile, arg1), await to_candid_ExternalBlob_n16(this._uploadFile, this._downloadFile, arg2), await to_candid_opt_n17(this._uploadFile, this._downloadFile, arg3), arg4, arg5, arg6, arg7, to_candid_opt_n18(this._uploadFile, this._downloadFile, arg8));
+      return from_candid_CreateVideoResult_n21(this._uploadFile, this._downloadFile, result);
     }
   }
   async deleteVideo(arg0) {
@@ -33732,14 +33862,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.execute(arg0);
-        return from_candid_Result_n25(this._uploadFile, this._downloadFile, result);
+        return from_candid_Result_n31(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.execute(arg0);
-      return from_candid_Result_n25(this._uploadFile, this._downloadFile, result);
+      return from_candid_Result_n31(this._uploadFile, this._downloadFile, result);
     }
   }
   async getApiDoc() {
@@ -33760,112 +33890,154 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getCallerProfile();
-        return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCallerProfile();
-      return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
     }
   }
   async getCallerUserRole() {
     if (this.processError) {
       try {
         const result = await this.actor.getCallerUserRole();
-        return from_candid_UserRole_n36(this._uploadFile, this._downloadFile, result);
+        return from_candid_UserRole_n42(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getCallerUserRole();
-      return from_candid_UserRole_n36(this._uploadFile, this._downloadFile, result);
+      return from_candid_UserRole_n42(this._uploadFile, this._downloadFile, result);
     }
   }
   async getChannel(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getChannel(arg0);
-        return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getChannel(arg0);
-      return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
     }
   }
   async getChannelByUsername(arg0) {
     if (this.processError) {
       try {
         const result = await this.actor.getChannelByUsername(arg0);
-        return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getChannelByUsername(arg0);
-      return from_candid_opt_n33(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n39(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async getChannelPlaylists(arg0, arg1, arg2) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.getChannelPlaylists(arg0, arg1, arg2);
+        return from_candid_Page_2_n44(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.getChannelPlaylists(arg0, arg1, arg2);
+      return from_candid_Page_2_n44(this._uploadFile, this._downloadFile, result);
     }
   }
   async getChannelVideos(arg0, arg1, arg2) {
     if (this.processError) {
       try {
         const result = await this.actor.getChannelVideos(arg0, arg1, arg2);
-        return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_n50(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getChannelVideos(arg0, arg1, arg2);
-      return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_n50(this._uploadFile, this._downloadFile, result);
     }
   }
   async getFeed(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getFeed(arg0, arg1);
-        return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_n50(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getFeed(arg0, arg1);
-      return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_n50(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async getMyPlaylists() {
+    if (this.processError) {
+      try {
+        const result = await this.actor.getMyPlaylists();
+        return result;
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.getMyPlaylists();
+      return result;
     }
   }
   async getMyVideos(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getMyVideos(arg0, arg1);
-        return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_n50(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getMyVideos(arg0, arg1);
-      return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_n50(this._uploadFile, this._downloadFile, result);
     }
   }
   async getNotifications(arg0, arg1) {
     if (this.processError) {
       try {
         const result = await this.actor.getNotifications(arg0, arg1);
-        return from_candid_Page_1_n42(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_1_n53(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getNotifications(arg0, arg1);
-      return from_candid_Page_1_n42(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_1_n53(this._uploadFile, this._downloadFile, result);
+    }
+  }
+  async getPlaylist(arg0) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.getPlaylist(arg0);
+        return from_candid_opt_n60(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.getPlaylist(arg0);
+      return from_candid_opt_n60(this._uploadFile, this._downloadFile, result);
     }
   }
   async getStorageProviders() {
@@ -33914,14 +34086,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getSubscriptionFeed(arg0, arg1);
-        return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
+        return from_candid_Page_n50(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getSubscriptionFeed(arg0, arg1);
-      return from_candid_Page_n38(this._uploadFile, this._downloadFile, result);
+      return from_candid_Page_n50(this._uploadFile, this._downloadFile, result);
     }
   }
   async getUnreadNotificationCount() {
@@ -33942,14 +34114,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.getVideo(arg0);
-        return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
+        return from_candid_opt_n63(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.getVideo(arg0);
-      return from_candid_opt_n49(this._uploadFile, this._downloadFile, result);
+      return from_candid_opt_n63(this._uploadFile, this._downloadFile, result);
     }
   }
   async isCallerAdmin() {
@@ -33998,14 +34170,14 @@ class Backend {
     if (this.processError) {
       try {
         const result = await this.actor.publishVideo(arg0);
-        return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
+        return from_candid_Video_n23(this._uploadFile, this._downloadFile, result);
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
       const result = await this.actor.publishVideo(arg0);
-      return from_candid_Video_n17(this._uploadFile, this._downloadFile, result);
+      return from_candid_Video_n23(this._uploadFile, this._downloadFile, result);
     }
   }
   async recordVideoView(arg0) {
@@ -34036,18 +34208,32 @@ class Backend {
       return result;
     }
   }
-  async saveProfile(arg0, arg1, arg2, arg3, arg4) {
+  async removeVideoFromPlaylist(arg0, arg1) {
     if (this.processError) {
       try {
-        const result = await this.actor.saveProfile(arg0, arg1, await to_candid_opt_n16(this._uploadFile, this._downloadFile, arg2), arg3, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg4));
-        return from_candid_User_n34(this._uploadFile, this._downloadFile, result);
+        const result = await this.actor.removeVideoFromPlaylist(arg0, arg1);
+        return result;
       } catch (e) {
         this.processError(e);
         throw new Error("unreachable");
       }
     } else {
-      const result = await this.actor.saveProfile(arg0, arg1, await to_candid_opt_n16(this._uploadFile, this._downloadFile, arg2), arg3, to_candid_opt_n14(this._uploadFile, this._downloadFile, arg4));
-      return from_candid_User_n34(this._uploadFile, this._downloadFile, result);
+      const result = await this.actor.removeVideoFromPlaylist(arg0, arg1);
+      return result;
+    }
+  }
+  async saveProfile(arg0, arg1, arg2, arg3, arg4) {
+    if (this.processError) {
+      try {
+        const result = await this.actor.saveProfile(arg0, arg1, await to_candid_opt_n17(this._uploadFile, this._downloadFile, arg2), arg3, to_candid_opt_n15(this._uploadFile, this._downloadFile, arg4));
+        return from_candid_User_n40(this._uploadFile, this._downloadFile, result);
+      } catch (e) {
+        this.processError(e);
+        throw new Error("unreachable");
+      }
+    } else {
+      const result = await this.actor.saveProfile(arg0, arg1, await to_candid_opt_n17(this._uploadFile, this._downloadFile, arg2), arg3, to_candid_opt_n15(this._uploadFile, this._downloadFile, arg4));
+      return from_candid_User_n40(this._uploadFile, this._downloadFile, result);
     }
   }
   async schema() {
@@ -34093,140 +34279,186 @@ class Backend {
     }
   }
 }
-function from_candid_Cell_n29(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n30(_uploadFile, _downloadFile, value);
+function from_candid_Cell_n35(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n36(_uploadFile, _downloadFile, value);
+}
+async function from_candid_CreateVideoResult_n21(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n22(_uploadFile, _downloadFile, value);
 }
 function from_candid_Error_n10(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n11(_uploadFile, _downloadFile, value);
 }
-async function from_candid_ExternalBlob_n22(_uploadFile, _downloadFile, value) {
+async function from_candid_ExternalBlob_n28(_uploadFile, _downloadFile, value) {
   return await _downloadFile(value);
 }
-function from_candid_NotificationKind_n47(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n48(_uploadFile, _downloadFile, value);
+function from_candid_NotificationKind_n58(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n59(_uploadFile, _downloadFile, value);
 }
-function from_candid_Notification_n45(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n46(_uploadFile, _downloadFile, value);
+function from_candid_Notification_n56(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n57(_uploadFile, _downloadFile, value);
 }
-function from_candid_Page_1_n42(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n43(_uploadFile, _downloadFile, value);
+function from_candid_Page_1_n53(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n54(_uploadFile, _downloadFile, value);
 }
-async function from_candid_Page_n38(_uploadFile, _downloadFile, value) {
-  return await from_candid_record_n39(_uploadFile, _downloadFile, value);
+async function from_candid_Page_2_n44(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n45(_uploadFile, _downloadFile, value);
+}
+async function from_candid_Page_n50(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n51(_uploadFile, _downloadFile, value);
+}
+async function from_candid_PlaylistSummary_n47(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n48(_uploadFile, _downloadFile, value);
+}
+async function from_candid_PlaylistView_n61(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n62(_uploadFile, _downloadFile, value);
 }
 function from_candid_Result__1_n8(_uploadFile, _downloadFile, value) {
   return from_candid_variant_n9(_uploadFile, _downloadFile, value);
 }
-function from_candid_Result_n25(_uploadFile, _downloadFile, value) {
-  return from_candid_record_n26(_uploadFile, _downloadFile, value);
+function from_candid_Result_n31(_uploadFile, _downloadFile, value) {
+  return from_candid_record_n32(_uploadFile, _downloadFile, value);
 }
-function from_candid_UserRole_n36(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n37(_uploadFile, _downloadFile, value);
+function from_candid_UserRole_n42(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n43(_uploadFile, _downloadFile, value);
 }
-async function from_candid_User_n34(_uploadFile, _downloadFile, value) {
-  return await from_candid_record_n35(_uploadFile, _downloadFile, value);
+async function from_candid_User_n40(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n41(_uploadFile, _downloadFile, value);
 }
-function from_candid_Value_n31(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n32(_uploadFile, _downloadFile, value);
+function from_candid_Value_n37(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n38(_uploadFile, _downloadFile, value);
 }
-function from_candid_VideoStatus_n19(_uploadFile, _downloadFile, value) {
-  return from_candid_variant_n20(_uploadFile, _downloadFile, value);
+function from_candid_VideoStatus_n25(_uploadFile, _downloadFile, value) {
+  return from_candid_variant_n26(_uploadFile, _downloadFile, value);
 }
-async function from_candid_Video_n17(_uploadFile, _downloadFile, value) {
-  return await from_candid_record_n18(_uploadFile, _downloadFile, value);
+async function from_candid_Video_n23(_uploadFile, _downloadFile, value) {
+  return await from_candid_record_n24(_uploadFile, _downloadFile, value);
 }
 function from_candid__ImmutableObjectStorageRefillResult_n4(_uploadFile, _downloadFile, value) {
   return from_candid_record_n5(_uploadFile, _downloadFile, value);
 }
-async function from_candid_opt_n21(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : await from_candid_ExternalBlob_n22(_uploadFile, _downloadFile, value[0]);
+async function from_candid_opt_n27(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : await from_candid_ExternalBlob_n28(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n23(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n29(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-function from_candid_opt_n24(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n30(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-async function from_candid_opt_n33(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : await from_candid_User_n34(_uploadFile, _downloadFile, value[0]);
+async function from_candid_opt_n39(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : await from_candid_User_n40(_uploadFile, _downloadFile, value[0]);
 }
-function from_candid_opt_n41(_uploadFile, _downloadFile, value) {
+function from_candid_opt_n49(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
-}
-async function from_candid_opt_n49(_uploadFile, _downloadFile, value) {
-  return value.length === 0 ? null : await from_candid_Video_n17(_uploadFile, _downloadFile, value[0]);
 }
 function from_candid_opt_n6(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
+async function from_candid_opt_n60(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : await from_candid_PlaylistView_n61(_uploadFile, _downloadFile, value[0]);
+}
+async function from_candid_opt_n63(_uploadFile, _downloadFile, value) {
+  return value.length === 0 ? null : await from_candid_Video_n23(_uploadFile, _downloadFile, value[0]);
+}
 function from_candid_opt_n7(_uploadFile, _downloadFile, value) {
   return value.length === 0 ? null : value[0];
 }
-async function from_candid_record_n18(_uploadFile, _downloadFile, value) {
+async function from_candid_record_n22(_uploadFile, _downloadFile, value) {
+  return {
+    video: await from_candid_Video_n23(_uploadFile, _downloadFile, value.video),
+    playlistId: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.playlistId))
+  };
+}
+async function from_candid_record_n24(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    status: from_candid_VideoStatus_n19(_uploadFile, _downloadFile, value.status),
+    status: from_candid_VideoStatus_n25(_uploadFile, _downloadFile, value.status),
     title: value.title,
-    thumbnail: record_opt_to_undefined(await from_candid_opt_n21(_uploadFile, _downloadFile, value.thumbnail)),
+    thumbnail: record_opt_to_undefined(await from_candid_opt_n27(_uploadFile, _downloadFile, value.thumbnail)),
     ownerId: value.ownerId,
-    video: await from_candid_ExternalBlob_n22(_uploadFile, _downloadFile, value.video),
+    video: await from_candid_ExternalBlob_n28(_uploadFile, _downloadFile, value.video),
     createdAt: value.createdAt,
-    publishedAt: record_opt_to_undefined(from_candid_opt_n23(_uploadFile, _downloadFile, value.publishedAt)),
+    publishedAt: record_opt_to_undefined(from_candid_opt_n29(_uploadFile, _downloadFile, value.publishedAt)),
     mimeType: value.mimeType,
-    description: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.description)),
+    description: record_opt_to_undefined(from_candid_opt_n30(_uploadFile, _downloadFile, value.description)),
     fileSize: value.fileSize,
     filename: value.filename,
     viewCount: value.viewCount,
     isPrivate: value.isPrivate
   };
 }
-function from_candid_record_n26(_uploadFile, _downloadFile, value) {
+function from_candid_record_n32(_uploadFile, _downloadFile, value) {
   return {
     hasMore: value.hasMore,
-    rows: from_candid_vec_n27(_uploadFile, _downloadFile, value.rows)
+    rows: from_candid_vec_n33(_uploadFile, _downloadFile, value.rows)
   };
 }
-function from_candid_record_n30(_uploadFile, _downloadFile, value) {
+function from_candid_record_n36(_uploadFile, _downloadFile, value) {
   return {
-    value: from_candid_Value_n31(_uploadFile, _downloadFile, value.value),
+    value: from_candid_Value_n37(_uploadFile, _downloadFile, value.value),
     name: value.name
   };
 }
-async function from_candid_record_n35(_uploadFile, _downloadFile, value) {
+async function from_candid_record_n41(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    bio: record_opt_to_undefined(from_candid_opt_n24(_uploadFile, _downloadFile, value.bio)),
+    bio: record_opt_to_undefined(from_candid_opt_n30(_uploadFile, _downloadFile, value.bio)),
     username: value.username,
     displayName: value.displayName,
     createdAt: value.createdAt,
-    avatar: record_opt_to_undefined(await from_candid_opt_n21(_uploadFile, _downloadFile, value.avatar))
+    avatar: record_opt_to_undefined(await from_candid_opt_n27(_uploadFile, _downloadFile, value.avatar))
   };
 }
-async function from_candid_record_n39(_uploadFile, _downloadFile, value) {
+async function from_candid_record_n45(_uploadFile, _downloadFile, value) {
   return {
-    items: await from_candid_vec_n40(_uploadFile, _downloadFile, value.items),
-    nextCursor: record_opt_to_undefined(from_candid_opt_n41(_uploadFile, _downloadFile, value.nextCursor))
+    items: await from_candid_vec_n46(_uploadFile, _downloadFile, value.items),
+    nextCursor: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.nextCursor))
   };
 }
-function from_candid_record_n43(_uploadFile, _downloadFile, value) {
-  return {
-    items: from_candid_vec_n44(_uploadFile, _downloadFile, value.items),
-    nextCursor: record_opt_to_undefined(from_candid_opt_n41(_uploadFile, _downloadFile, value.nextCursor))
-  };
-}
-function from_candid_record_n46(_uploadFile, _downloadFile, value) {
+async function from_candid_record_n48(_uploadFile, _downloadFile, value) {
   return {
     id: value.id,
-    kind: from_candid_NotificationKind_n47(_uploadFile, _downloadFile, value.kind),
+    title: value.title,
+    thumbnail: record_opt_to_undefined(await from_candid_opt_n27(_uploadFile, _downloadFile, value.thumbnail)),
+    videoCount: value.videoCount,
+    firstVideoId: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.firstVideoId)),
+    ownerId: value.ownerId,
     createdAt: value.createdAt,
-    read: value.read,
-    recipientId: value.recipientId
+    updatedAt: value.updatedAt,
+    isPrivate: value.isPrivate
   };
 }
 function from_candid_record_n5(_uploadFile, _downloadFile, value) {
   return {
     success: record_opt_to_undefined(from_candid_opt_n6(_uploadFile, _downloadFile, value.success)),
     topped_up_amount: record_opt_to_undefined(from_candid_opt_n7(_uploadFile, _downloadFile, value.topped_up_amount))
+  };
+}
+async function from_candid_record_n51(_uploadFile, _downloadFile, value) {
+  return {
+    items: await from_candid_vec_n52(_uploadFile, _downloadFile, value.items),
+    nextCursor: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.nextCursor))
+  };
+}
+function from_candid_record_n54(_uploadFile, _downloadFile, value) {
+  return {
+    items: from_candid_vec_n55(_uploadFile, _downloadFile, value.items),
+    nextCursor: record_opt_to_undefined(from_candid_opt_n49(_uploadFile, _downloadFile, value.nextCursor))
+  };
+}
+function from_candid_record_n57(_uploadFile, _downloadFile, value) {
+  return {
+    id: value.id,
+    kind: from_candid_NotificationKind_n58(_uploadFile, _downloadFile, value.kind),
+    createdAt: value.createdAt,
+    read: value.read,
+    recipientId: value.recipientId
+  };
+}
+async function from_candid_record_n62(_uploadFile, _downloadFile, value) {
+  return {
+    playlist: await from_candid_PlaylistSummary_n47(_uploadFile, _downloadFile, value.playlist),
+    videos: await from_candid_vec_n52(_uploadFile, _downloadFile, value.videos)
   };
 }
 function from_candid_variant_n11(_uploadFile, _downloadFile, value) {
@@ -34262,10 +34494,10 @@ function from_candid_variant_n11(_uploadFile, _downloadFile, value) {
     FrontendOriginMismatch: value.FrontendOriginMismatch
   } : value;
 }
-function from_candid_variant_n20(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n26(_uploadFile, _downloadFile, value) {
   return "deleted" in value ? "deleted" : "published" in value ? "published" : "processing" in value ? "processing" : "draft" in value ? "draft" : value;
 }
-function from_candid_variant_n32(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n38(_uploadFile, _downloadFile, value) {
   return "int" in value ? {
     __kind__: "int",
     int: value.int
@@ -34286,10 +34518,10 @@ function from_candid_variant_n32(_uploadFile, _downloadFile, value) {
     text: value.text
   } : value;
 }
-function from_candid_variant_n37(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n43(_uploadFile, _downloadFile, value) {
   return "admin" in value ? "admin" : "user" in value ? "user" : "guest" in value ? "guest" : value;
 }
-function from_candid_variant_n48(_uploadFile, _downloadFile, value) {
+function from_candid_variant_n59(_uploadFile, _downloadFile, value) {
   return "newVideo" in value ? {
     __kind__: "newVideo",
     newVideo: value.newVideo
@@ -34307,20 +34539,26 @@ function from_candid_variant_n9(_uploadFile, _downloadFile, value) {
     err: from_candid_Error_n10(_uploadFile, _downloadFile, value.err)
   } : value;
 }
-function from_candid_vec_n27(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_vec_n28(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n33(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_vec_n34(_uploadFile, _downloadFile, x2));
 }
-function from_candid_vec_n28(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_Cell_n29(_uploadFile, _downloadFile, x2));
+function from_candid_vec_n34(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_Cell_n35(_uploadFile, _downloadFile, x2));
 }
-async function from_candid_vec_n40(_uploadFile, _downloadFile, value) {
-  return await Promise.all(value.map(async (x2) => await from_candid_Video_n17(_uploadFile, _downloadFile, x2)));
+async function from_candid_vec_n46(_uploadFile, _downloadFile, value) {
+  return await Promise.all(value.map(async (x2) => await from_candid_PlaylistSummary_n47(_uploadFile, _downloadFile, x2)));
 }
-function from_candid_vec_n44(_uploadFile, _downloadFile, value) {
-  return value.map((x2) => from_candid_Notification_n45(_uploadFile, _downloadFile, x2));
+async function from_candid_vec_n52(_uploadFile, _downloadFile, value) {
+  return await Promise.all(value.map(async (x2) => await from_candid_Video_n23(_uploadFile, _downloadFile, x2)));
 }
-async function to_candid_ExternalBlob_n15(_uploadFile, _downloadFile, value) {
+function from_candid_vec_n55(_uploadFile, _downloadFile, value) {
+  return value.map((x2) => from_candid_Notification_n56(_uploadFile, _downloadFile, x2));
+}
+async function to_candid_ExternalBlob_n16(_uploadFile, _downloadFile, value) {
   return await _uploadFile(value);
+}
+function to_candid_PlaylistSelection_n19(_uploadFile, _downloadFile, value) {
+  return to_candid_variant_n20(_uploadFile, _downloadFile, value);
 }
 function to_candid_UserRole_n12(_uploadFile, _downloadFile, value) {
   return to_candid_variant_n13(_uploadFile, _downloadFile, value);
@@ -34334,8 +34572,14 @@ function to_candid_opt_n1(_uploadFile, _downloadFile, value) {
 function to_candid_opt_n14(_uploadFile, _downloadFile, value) {
   return value === null ? candid_none() : candid_some(value);
 }
-async function to_candid_opt_n16(_uploadFile, _downloadFile, value) {
-  return value === null ? candid_none() : candid_some(await to_candid_ExternalBlob_n15(_uploadFile, _downloadFile, value));
+function to_candid_opt_n15(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(value);
+}
+async function to_candid_opt_n17(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(await to_candid_ExternalBlob_n16(_uploadFile, _downloadFile, value));
+}
+function to_candid_opt_n18(_uploadFile, _downloadFile, value) {
+  return value === null ? candid_none() : candid_some(to_candid_PlaylistSelection_n19(_uploadFile, _downloadFile, value));
 }
 function to_candid_record_n3(_uploadFile, _downloadFile, value) {
   return {
@@ -34349,6 +34593,13 @@ function to_candid_variant_n13(_uploadFile, _downloadFile, value) {
     user: null
   } : value == "guest" ? {
     guest: null
+  } : value;
+}
+function to_candid_variant_n20(_uploadFile, _downloadFile, value) {
+  return value.__kind__ === "new" ? {
+    new: value.new
+  } : value.__kind__ === "existing" ? {
+    existing: value.existing
   } : value;
 }
 function createActor(canisterId, _uploadFile, _downloadFile, options = {}) {
@@ -34419,6 +34670,8 @@ const config = {
   notificationPageSize: 20,
   /** Number of channel videos requested per page. */
   channelPageSize: 12,
+  /** Number of channel playlists requested per page. */
+  playlistPageSize: 12,
   /** Accepted video MIME types for upload. */
   acceptedVideoMimeTypes: ["video/mp4", "video/webm", "video/quicktime"],
   /** Accepted thumbnail MIME types for upload. */
@@ -34427,6 +34680,8 @@ const config = {
   acceptedAvatarMimeTypes: ["image/jpeg", "image/png", "image/webp"],
   /** Maximum length of a video title. */
   maxTitleLength: 100,
+  /** Maximum length of a playlist title. */
+  maxPlaylistTitleLength: 100,
   /** Maximum length of a video description. */
   maxDescriptionLength: 5e3,
   /** Maximum length of a display name. */
@@ -34441,6 +34696,9 @@ function toPage(page) {
   return { items: page.items, nextCursor: page.nextCursor };
 }
 function toNotificationPage(page) {
+  return { items: page.items, nextCursor: page.nextCursor };
+}
+function toPlaylistPage(page) {
   return { items: page.items, nextCursor: page.nextCursor };
 }
 class NotificationService {
@@ -34604,19 +34862,19 @@ const createLucideIcon = (iconName, iconNode) => {
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$x = [
+const __iconNode$D = [
   ["path", { d: "M15 12H3", key: "6jk70r" }],
   ["path", { d: "M17 18H3", key: "1amg6g" }],
   ["path", { d: "M21 6H3", key: "1jwq7v" }]
 ];
-const AlignLeft = createLucideIcon("align-left", __iconNode$x);
+const AlignLeft = createLucideIcon("align-left", __iconNode$D);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$w = [
+const __iconNode$C = [
   ["path", { d: "M10.268 21a2 2 0 0 0 3.464 0", key: "vwvbt9" }],
   [
     "path",
@@ -34628,14 +34886,14 @@ const __iconNode$w = [
   ["path", { d: "m2 2 20 20", key: "1ooewy" }],
   ["path", { d: "M8.668 3.01A6 6 0 0 1 18 8c0 2.687.77 4.653 1.707 6.05", key: "1hqiys" }]
 ];
-const BellOff = createLucideIcon("bell-off", __iconNode$w);
+const BellOff = createLucideIcon("bell-off", __iconNode$C);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$v = [
+const __iconNode$B = [
   ["path", { d: "M10.268 21a2 2 0 0 0 3.464 0", key: "vwvbt9" }],
   [
     "path",
@@ -34645,7 +34903,65 @@ const __iconNode$v = [
     }
   ]
 ];
-const Bell = createLucideIcon("bell", __iconNode$v);
+const Bell = createLucideIcon("bell", __iconNode$B);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$A = [
+  ["path", { d: "M18 6 7 17l-5-5", key: "116fxf" }],
+  ["path", { d: "m22 10-7.5 7.5L13 16", key: "ke71qq" }]
+];
+const CheckCheck = createLucideIcon("check-check", __iconNode$A);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$z = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
+const Check = createLucideIcon("check", __iconNode$z);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$y = [["path", { d: "m15 18-6-6 6-6", key: "1wnfg3" }]];
+const ChevronLeft = createLucideIcon("chevron-left", __iconNode$y);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$x = [["path", { d: "m9 18 6-6-6-6", key: "mthhwq" }]];
+const ChevronRight = createLucideIcon("chevron-right", __iconNode$x);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$w = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+];
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$w);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$v = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
+];
+const CircleCheck = createLucideIcon("circle-check", __iconNode$v);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34653,48 +34969,6 @@ const Bell = createLucideIcon("bell", __iconNode$v);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$u = [
-  ["path", { d: "M18 6 7 17l-5-5", key: "116fxf" }],
-  ["path", { d: "m22 10-7.5 7.5L13 16", key: "ke71qq" }]
-];
-const CheckCheck = createLucideIcon("check-check", __iconNode$u);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$t = [["path", { d: "M20 6 9 17l-5-5", key: "1gmf2c" }]];
-const Check = createLucideIcon("check", __iconNode$t);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$s = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
-  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
-];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$s);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$r = [
-  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
-  ["path", { d: "m9 12 2 2 4-4", key: "dzmm74" }]
-];
-const CircleCheck = createLucideIcon("circle-check", __iconNode$r);
-/**
- * @license lucide-react v0.511.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */
-const __iconNode$q = [
   [
     "path",
     { d: "M20.2 6 3 11l-.9-2.4c-.3-1.1.3-2.2 1.3-2.5l13.5-4c1.1-.3 2.2.3 2.5 1.3Z", key: "1tn4o7" }
@@ -34703,38 +34977,38 @@ const __iconNode$q = [
   ["path", { d: "m12.4 3.4 3.1 4", key: "6hsd6n" }],
   ["path", { d: "M3 11h18v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z", key: "ltgou9" }]
 ];
-const Clapperboard = createLucideIcon("clapperboard", __iconNode$q);
+const Clapperboard = createLucideIcon("clapperboard", __iconNode$u);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$p = [
+const __iconNode$t = [
   ["path", { d: "M12 13v8", key: "1l5pq0" }],
   ["path", { d: "M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242", key: "1pljnt" }],
   ["path", { d: "m8 17 4-4 4 4", key: "1quai1" }]
 ];
-const CloudUpload = createLucideIcon("cloud-upload", __iconNode$p);
+const CloudUpload = createLucideIcon("cloud-upload", __iconNode$t);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$o = [
+const __iconNode$s = [
   ["path", { d: "M12 15V3", key: "m9g1x1" }],
   ["path", { d: "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4", key: "ih7n3h" }],
   ["path", { d: "m7 10 5 5 5-5", key: "brsn70" }]
 ];
-const Download = createLucideIcon("download", __iconNode$o);
+const Download = createLucideIcon("download", __iconNode$s);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$n = [
+const __iconNode$r = [
   [
     "path",
     {
@@ -34744,14 +35018,14 @@ const __iconNode$n = [
   ],
   ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
 ];
-const Eye = createLucideIcon("eye", __iconNode$n);
+const Eye = createLucideIcon("eye", __iconNode$r);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$m = [
+const __iconNode$q = [
   [
     "path",
     {
@@ -34763,28 +35037,28 @@ const __iconNode$m = [
   ["path", { d: "m17 22 3-3", key: "1nkfve" }],
   ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }]
 ];
-const ImageDown = createLucideIcon("image-down", __iconNode$m);
+const ImageDown = createLucideIcon("image-down", __iconNode$q);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$l = [
+const __iconNode$p = [
   ["path", { d: "M16 5h6", key: "1vod17" }],
   ["path", { d: "M19 2v6", key: "4bpg5p" }],
   ["path", { d: "M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7.5", key: "1ue2ih" }],
   ["path", { d: "m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21", key: "1xmnt7" }],
   ["circle", { cx: "9", cy: "9", r: "2", key: "af1f0g" }]
 ];
-const ImagePlus = createLucideIcon("image-plus", __iconNode$l);
+const ImagePlus = createLucideIcon("image-plus", __iconNode$p);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$k = [
+const __iconNode$o = [
   ["polyline", { points: "22 12 16 12 14 15 10 15 8 12 2 12", key: "o97t9d" }],
   [
     "path",
@@ -34794,15 +35068,66 @@ const __iconNode$k = [
     }
   ]
 ];
-const Inbox = createLucideIcon("inbox", __iconNode$k);
+const Inbox = createLucideIcon("inbox", __iconNode$o);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$j = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
-const LoaderCircle = createLucideIcon("loader-circle", __iconNode$j);
+const __iconNode$n = [
+  ["path", { d: "M11 12H3", key: "51ecnj" }],
+  ["path", { d: "M16 6H3", key: "1wxfjs" }],
+  ["path", { d: "M16 18H3", key: "12xzn7" }],
+  ["path", { d: "M18 9v6", key: "1twb98" }],
+  ["path", { d: "M21 12h-6", key: "bt1uis" }]
+];
+const ListPlus = createLucideIcon("list-plus", __iconNode$n);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$m = [
+  ["path", { d: "M12 12H3", key: "18klou" }],
+  ["path", { d: "M16 6H3", key: "1wxfjs" }],
+  ["path", { d: "M12 18H3", key: "11ftsu" }],
+  ["path", { d: "m16 12 5 3-5 3v-6Z", key: "zpskkp" }]
+];
+const ListVideo = createLucideIcon("list-video", __iconNode$m);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$l = [["path", { d: "M21 12a9 9 0 1 1-6.219-8.56", key: "13zald" }]];
+const LoaderCircle = createLucideIcon("loader-circle", __iconNode$l);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$k = [
+  ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
+  ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
+  ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
+];
+const LockKeyhole = createLucideIcon("lock-keyhole", __iconNode$k);
+/**
+ * @license lucide-react v0.511.0 - ISC
+ *
+ * This source code is licensed under the ISC license.
+ * See the LICENSE file in the root directory of this source tree.
+ */
+const __iconNode$j = [
+  ["path", { d: "m10 17 5-5-5-5", key: "1bsop3" }],
+  ["path", { d: "M15 12H3", key: "6jk70r" }],
+  ["path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4", key: "u53s6r" }]
+];
+const LogIn = createLucideIcon("log-in", __iconNode$j);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34810,11 +35135,11 @@ const LoaderCircle = createLucideIcon("loader-circle", __iconNode$j);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$i = [
-  ["circle", { cx: "12", cy: "16", r: "1", key: "1au0dj" }],
-  ["rect", { x: "3", y: "10", width: "18", height: "12", rx: "2", key: "6s8ecr" }],
-  ["path", { d: "M7 10V7a5 5 0 0 1 10 0v3", key: "1pqi11" }]
+  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
+  ["path", { d: "M21 12H9", key: "dn1m92" }],
+  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
 ];
-const LockKeyhole = createLucideIcon("lock-keyhole", __iconNode$i);
+const LogOut = createLucideIcon("log-out", __iconNode$i);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34822,11 +35147,11 @@ const LockKeyhole = createLucideIcon("lock-keyhole", __iconNode$i);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$h = [
-  ["path", { d: "m10 17 5-5-5-5", key: "1bsop3" }],
-  ["path", { d: "M15 12H3", key: "6jk70r" }],
-  ["path", { d: "M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4", key: "u53s6r" }]
+  ["path", { d: "M4 12h16", key: "1lakjw" }],
+  ["path", { d: "M4 18h16", key: "19g7jn" }],
+  ["path", { d: "M4 6h16", key: "1o0s65" }]
 ];
-const LogIn = createLucideIcon("log-in", __iconNode$h);
+const Menu = createLucideIcon("menu", __iconNode$h);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34834,11 +35159,11 @@ const LogIn = createLucideIcon("log-in", __iconNode$h);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$g = [
-  ["path", { d: "m16 17 5-5-5-5", key: "1bji2h" }],
-  ["path", { d: "M21 12H9", key: "dn1m92" }],
-  ["path", { d: "M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4", key: "1uf3rs" }]
+  ["rect", { width: "20", height: "14", x: "2", y: "3", rx: "2", key: "48i651" }],
+  ["line", { x1: "8", x2: "16", y1: "21", y2: "21", key: "1svkeh" }],
+  ["line", { x1: "12", x2: "12", y1: "17", y2: "21", key: "vw1qmm" }]
 ];
-const LogOut = createLucideIcon("log-out", __iconNode$g);
+const Monitor = createLucideIcon("monitor", __iconNode$g);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34846,23 +35171,17 @@ const LogOut = createLucideIcon("log-out", __iconNode$g);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$f = [
-  ["path", { d: "M4 12h16", key: "1lakjw" }],
-  ["path", { d: "M4 18h16", key: "19g7jn" }],
-  ["path", { d: "M4 6h16", key: "1o0s65" }]
+  ["path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z", key: "a7tn18" }]
 ];
-const Menu = createLucideIcon("menu", __iconNode$f);
+const Moon = createLucideIcon("moon", __iconNode$f);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$e = [
-  ["rect", { width: "20", height: "14", x: "2", y: "3", rx: "2", key: "48i651" }],
-  ["line", { x1: "8", x2: "16", y1: "21", y2: "21", key: "1svkeh" }],
-  ["line", { x1: "12", x2: "12", y1: "17", y2: "21", key: "vw1qmm" }]
-];
-const Monitor = createLucideIcon("monitor", __iconNode$e);
+const __iconNode$e = [["polygon", { points: "6 3 20 12 6 21 6 3", key: "1oa8hb" }]];
+const Play = createLucideIcon("play", __iconNode$e);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -34870,17 +35189,23 @@ const Monitor = createLucideIcon("monitor", __iconNode$e);
  * See the LICENSE file in the root directory of this source tree.
  */
 const __iconNode$d = [
-  ["path", { d: "M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z", key: "a7tn18" }]
+  ["path", { d: "M5 12h14", key: "1ays0h" }],
+  ["path", { d: "M12 5v14", key: "s699le" }]
 ];
-const Moon = createLucideIcon("moon", __iconNode$d);
+const Plus = createLucideIcon("plus", __iconNode$d);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
  * This source code is licensed under the ISC license.
  * See the LICENSE file in the root directory of this source tree.
  */
-const __iconNode$c = [["polygon", { points: "6 3 20 12 6 21 6 3", key: "1oa8hb" }]];
-const Play = createLucideIcon("play", __iconNode$c);
+const __iconNode$c = [
+  ["path", { d: "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8", key: "v9h5vc" }],
+  ["path", { d: "M21 3v5h-5", key: "1q7to0" }],
+  ["path", { d: "M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16", key: "3uifl3" }],
+  ["path", { d: "M8 16H3v5", key: "1cv678" }]
+];
+const RefreshCw = createLucideIcon("refresh-cw", __iconNode$c);
 /**
  * @license lucide-react v0.511.0 - ISC
  *
@@ -43571,6 +43896,71 @@ function InfiniteScrollSentinel({
     }
   );
 }
+function PlaylistCard({ playlist }) {
+  var _a2;
+  const thumbnailUrl = (_a2 = playlist.thumbnail) == null ? void 0 : _a2.getDirectURL();
+  const card = /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "article",
+    {
+      "data-ocid": "playlist_card",
+      className: "group h-full overflow-hidden rounded-xl border border-border bg-card transition-smooth hover:shadow-elevated",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "relative aspect-video overflow-hidden bg-muted", children: [
+          thumbnailUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "img",
+            {
+              src: thumbnailUrl,
+              alt: "",
+              loading: "lazy",
+              className: "size-full object-cover transition-transform duration-300 group-hover:scale-105"
+            }
+          ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex size-full items-center justify-center bg-gradient-subtle text-muted-foreground", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ListVideo, { className: "size-10", "aria-hidden": "true" }) }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "absolute inset-y-0 right-0 flex w-2/5 flex-col items-center justify-center gap-1 bg-black/75 text-white", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-lg font-semibold", children: playlist.videoCount.toString() }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(ListVideo, { className: "size-5", "aria-hidden": "true" })
+          ] }),
+          playlist.firstVideoId !== void 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 transition-all group-hover:bg-black/25 group-hover:opacity-100", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-2 rounded-full bg-black/80 px-3 py-1.5 text-xs font-medium text-white", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { className: "size-3.5 fill-current", "aria-hidden": "true" }),
+            "Play all"
+          ] }) }) : null,
+          playlist.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "absolute left-2 top-2 flex items-center gap-1 rounded-md bg-black/80 px-2 py-1 text-xs font-medium text-white", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(LockKeyhole, { className: "size-3", "aria-hidden": "true" }),
+            "Private"
+          ] }) : null
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "line-clamp-2 font-display text-sm font-semibold text-foreground", children: playlist.title }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "mt-1 text-xs text-muted-foreground", children: [
+            playlist.videoCount.toString(),
+            " ",
+            playlist.videoCount === 1n ? "video" : "videos"
+          ] })
+        ] })
+      ]
+    }
+  );
+  return playlist.firstVideoId !== void 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+    Link,
+    {
+      to: "/watch/$videoId",
+      params: { videoId: playlist.firstVideoId.toString() },
+      search: { list: playlist.id.toString(), index: 1 },
+      "aria-label": `Play playlist ${playlist.title}`,
+      className: "block h-full rounded-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brand",
+      children: card
+    }
+  ) : card;
+}
+function PlaylistGrid({ playlists }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      "data-ocid": "playlist_grid",
+      className: "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3",
+      children: playlists.map((playlist) => /* @__PURE__ */ jsxRuntimeExports.jsx(PlaylistCard, { playlist }, playlist.id.toString()))
+    }
+  );
+}
 const variantClasses = {
   primary: "btn-primary",
   ghost: "btn-ghost",
@@ -44189,6 +44579,68 @@ function VideoGrid({
     }
   );
 }
+function useInfinitePlaylists({
+  fetcher,
+  pageSize,
+  enabled = true
+}) {
+  const [items, setItems] = reactExports.useState([]);
+  const [nextCursor, setNextCursor] = reactExports.useState();
+  const [hasMore, setHasMore] = reactExports.useState(true);
+  const [isLoading, setIsLoading] = reactExports.useState(false);
+  const [error, setError] = reactExports.useState(null);
+  const loadingRef = reactExports.useRef(false);
+  const requestIdRef = reactExports.useRef(0);
+  const fetcherRef = reactExports.useRef(fetcher);
+  fetcherRef.current = fetcher;
+  const loadMore = reactExports.useCallback(async () => {
+    if (loadingRef.current || !hasMore) return;
+    loadingRef.current = true;
+    const requestId = ++requestIdRef.current;
+    setIsLoading(true);
+    setError(null);
+    try {
+      const page = await fetcherRef.current(nextCursor ?? 0n, BigInt(pageSize));
+      if (requestId !== requestIdRef.current) return;
+      setItems((previous) => {
+        const seen = new Set(
+          previous.map((playlist) => playlist.id.toString())
+        );
+        return [
+          ...previous,
+          ...page.items.filter((playlist) => !seen.has(playlist.id.toString()))
+        ];
+      });
+      setNextCursor(page.nextCursor);
+      setHasMore(page.nextCursor !== void 0);
+    } catch (caught) {
+      if (requestId !== requestIdRef.current) return;
+      setError(
+        caught instanceof Error ? caught : new Error("Failed to load playlists")
+      );
+    } finally {
+      if (requestId === requestIdRef.current) {
+        loadingRef.current = false;
+        setIsLoading(false);
+      }
+    }
+  }, [hasMore, nextCursor, pageSize]);
+  reactExports.useEffect(() => {
+    if (enabled && items.length === 0 && !loadingRef.current) {
+      void loadMore();
+    }
+  }, [enabled, items.length, loadMore]);
+  const reset = reactExports.useCallback(() => {
+    requestIdRef.current += 1;
+    loadingRef.current = false;
+    setItems([]);
+    setNextCursor(void 0);
+    setHasMore(true);
+    setIsLoading(false);
+    setError(null);
+  }, []);
+  return { items, hasMore, loadMore, reset, isLoading, error };
+}
 function useInfiniteVideos({
   fetcher,
   pageSize,
@@ -44266,6 +44718,29 @@ function useInfiniteVideos({
   }, []);
   return { items, hasMore, loadMore, reset, isLoading, error, sentinelRef };
 }
+class PlaylistService {
+  getMyPlaylists(actor) {
+    return actor.getMyPlaylists();
+  }
+  async getChannelPlaylists(actor, userId, cursor, limit) {
+    return toPlaylistPage(
+      await actor.getChannelPlaylists(userId, cursor, limit)
+    );
+  }
+  getPlaylist(actor, playlistId) {
+    return actor.getPlaylist(playlistId);
+  }
+  createPlaylist(actor, title, isPrivate, initialVideoId = null) {
+    return actor.createPlaylist(title, isPrivate, initialVideoId);
+  }
+  addVideo(actor, playlistId, videoId) {
+    return actor.addVideoToPlaylist(playlistId, videoId);
+  }
+  removeVideo(actor, playlistId, videoId) {
+    return actor.removeVideoFromPlaylist(playlistId, videoId);
+  }
+}
+const playlistService = new PlaylistService();
 class VideoService {
   /** Fetches a cursor-paginated page of the global feed. */
   async getFeed(actor, cursor, limit) {
@@ -44347,9 +44822,35 @@ function ChannelVideosSkeleton() {
     }
   );
 }
+function ChannelPlaylistsSkeleton() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3",
+      "aria-hidden": "true",
+      children: CHANNEL_SKELETON_KEYS.slice(0, 6).map((key) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "div",
+        {
+          className: "overflow-hidden rounded-xl border border-border bg-card",
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "aspect-video w-full rounded-none" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 p-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-4 w-3/4" }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3 w-1/3" })
+            ] })
+          ]
+        },
+        `playlist-${key}`
+      ))
+    }
+  );
+}
 function ChannelPage() {
   var _a2;
   const { userId } = useParams({ from: "/channel/$userId" });
+  const { tab } = useSearch({ from: "/channel/$userId" });
+  const navigate = useNavigate();
+  const activeTab = tab === "playlists" ? "playlists" : "videos";
   const channelPrincipal = Principal$1.fromText(userId);
   const { actor, isFetching } = useActor(createActor);
   const { principal } = useAuth();
@@ -44379,10 +44880,34 @@ function ChannelPage() {
   const { items, hasMore, loadMore, reset, isLoading, error } = useInfiniteVideos({
     fetcher,
     pageSize: config.channelPageSize,
-    enabled: !!actor && !isFetching
+    enabled: activeTab === "videos" && !!actor && !isFetching
+  });
+  const playlistFetcher = reactExports.useCallback(
+    (cursor, limit) => {
+      if (!actor) return Promise.resolve({ items: [] });
+      return playlistService.getChannelPlaylists(
+        actor,
+        channelPrincipal,
+        cursor,
+        limit
+      );
+    },
+    [actor, channelPrincipal]
+  );
+  const playlists = useInfinitePlaylists({
+    fetcher: playlistFetcher,
+    pageSize: config.playlistPageSize,
+    enabled: activeTab === "playlists" && !!actor && !isFetching
   });
   const initialLoading = isLoading && items.length === 0 && !error;
   const memberSince = timestampToDate((channel == null ? void 0 : channel.createdAt) ?? 0n);
+  const selectTab = (nextTab) => {
+    void navigate({
+      to: "/channel/$userId",
+      params: { userId },
+      search: nextTab === "playlists" ? { tab: "playlists" } : {}
+    });
+  };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "section",
     {
@@ -44435,34 +44960,127 @@ function ChannelPage() {
             ]
           }
         ),
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col gap-4", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "font-display text-lg font-semibold text-foreground", children: "Videos" }),
-          error && items.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-            ErrorState,
-            {
-              title: "Couldn't load this channel's videos",
-              message: error.message,
-              onRetry: reset
-            }
-          ) : initialLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChannelVideosSkeleton, {}) : items.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-            EmptyState,
-            {
-              icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Clapperboard, { className: "size-7", "aria-hidden": "true" }),
-              title: "No videos yet",
-              description: "This channel hasn't published any videos yet. Check back soon."
-            }
-          ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(VideoGrid, { videos: items, channelName: channel == null ? void 0 : channel.displayName }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx(
-              InfiniteScrollSentinel,
+        /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            role: "tablist",
+            "aria-label": "Channel content",
+            className: "tabs tabs-border border-b border-border",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  type: "button",
+                  role: "tab",
+                  id: "channel-videos-tab",
+                  "aria-controls": "channel-videos-panel",
+                  "aria-selected": activeTab === "videos",
+                  className: `tab gap-2 ${activeTab === "videos" ? "tab-active" : ""}`,
+                  onClick: () => selectTab("videos"),
+                  onKeyDown: (event) => {
+                    if (event.key === "ArrowRight" || event.key === "End") {
+                      event.preventDefault();
+                      selectTab("playlists");
+                    }
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Clapperboard, { className: "size-4", "aria-hidden": "true" }),
+                    "Videos"
+                  ]
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "button",
+                {
+                  type: "button",
+                  role: "tab",
+                  id: "channel-playlists-tab",
+                  "aria-controls": "channel-playlists-panel",
+                  "aria-selected": activeTab === "playlists",
+                  className: `tab gap-2 ${activeTab === "playlists" ? "tab-active" : ""}`,
+                  onClick: () => selectTab("playlists"),
+                  onKeyDown: (event) => {
+                    if (event.key === "ArrowLeft" || event.key === "Home") {
+                      event.preventDefault();
+                      selectTab("videos");
+                    }
+                  },
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(ListVideo, { className: "size-4", "aria-hidden": "true" }),
+                    "Playlists"
+                  ]
+                }
+              )
+            ]
+          }
+        ),
+        activeTab === "videos" ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            id: "channel-videos-panel",
+            role: "tabpanel",
+            "aria-labelledby": "channel-videos-tab",
+            className: "flex flex-col gap-4",
+            children: error && items.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              ErrorState,
               {
-                onIntersect: () => void loadMore(),
-                disabled: !hasMore || isLoading
+                title: "Couldn't load this channel's videos",
+                message: error.message,
+                onRetry: reset
               }
-            ),
-            isLoading && items.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Loader, { label: "Loading more videos" }) }) : null
-          ] })
-        ] })
+            ) : initialLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChannelVideosSkeleton, {}) : items.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              EmptyState,
+              {
+                icon: /* @__PURE__ */ jsxRuntimeExports.jsx(Clapperboard, { className: "size-7", "aria-hidden": "true" }),
+                title: "No videos yet",
+                description: "This channel hasn't published any videos yet. Check back soon."
+              }
+            ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(VideoGrid, { videos: items, channelName: channel == null ? void 0 : channel.displayName }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                InfiniteScrollSentinel,
+                {
+                  onIntersect: () => void loadMore(),
+                  disabled: !hasMore || isLoading
+                }
+              ),
+              isLoading && items.length > 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Loader, { label: "Loading more videos" }) }) : null
+            ] })
+          }
+        ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "div",
+          {
+            id: "channel-playlists-panel",
+            role: "tabpanel",
+            "aria-labelledby": "channel-playlists-tab",
+            className: "flex flex-col gap-4",
+            children: playlists.error && playlists.items.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              ErrorState,
+              {
+                title: "Couldn't load this channel's playlists",
+                message: playlists.error.message,
+                onRetry: playlists.reset
+              }
+            ) : playlists.isLoading && playlists.items.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChannelPlaylistsSkeleton, {}) : playlists.items.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              EmptyState,
+              {
+                icon: /* @__PURE__ */ jsxRuntimeExports.jsx(ListVideo, { className: "size-7", "aria-hidden": "true" }),
+                title: "No playlists yet",
+                description: "This channel hasn't shared any playlists yet."
+              }
+            ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(PlaylistGrid, { playlists: playlists.items }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                InfiniteScrollSentinel,
+                {
+                  onIntersect: () => void playlists.loadMore(),
+                  disabled: !playlists.hasMore || playlists.isLoading
+                }
+              ),
+              playlists.isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-center py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Loader, { label: "Loading more playlists" }) }) : null
+            ] })
+          }
+        )
       ]
     }
   );
@@ -45077,6 +45695,133 @@ function SubscriptionsPage() {
     ] })
   ] });
 }
+function PlaylistPicker({
+  playlists,
+  value,
+  onChange,
+  error,
+  isLoading = false,
+  loadError = false,
+  onRetry,
+  disabled = false
+}) {
+  const selectedValue = (value == null ? void 0 : value.__kind__) === "existing" ? `existing:${value.existing.toString()}` : (value == null ? void 0 : value.__kind__) === "new" ? "new" : "none";
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("fieldset", { className: "rounded-box border border-border bg-card p-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("legend", { className: "px-1 text-sm font-medium text-foreground", children: [
+      "Playlist",
+      " ",
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-normal text-muted-foreground", children: "(optional)" })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("label", { htmlFor: "upload-playlist", className: "sr-only", children: "Add video to playlist" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "select",
+      {
+        id: "upload-playlist",
+        "data-ocid": "playlist_select",
+        className: "select select-bordered w-full bg-card",
+        value: selectedValue,
+        disabled: disabled || isLoading,
+        onChange: (event) => {
+          const selection = event.target.value;
+          if (selection === "none") {
+            onChange(null);
+          } else if (selection === "new") {
+            onChange({
+              __kind__: "new",
+              new: { title: "", isPrivate: false }
+            });
+          } else {
+            onChange({
+              __kind__: "existing",
+              existing: BigInt(selection.slice("existing:".length))
+            });
+          }
+        },
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "none", children: "No playlist" }),
+          playlists.map((playlist) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "option",
+            {
+              value: `existing:${playlist.id}`,
+              children: [
+                playlist.title,
+                playlist.isPrivate ? " (Private)" : ""
+              ]
+            },
+            playlist.id.toString()
+          )),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("option", { value: "new", children: "Create a new playlist…" })
+        ]
+      }
+    ),
+    isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-xs text-muted-foreground", children: "Loading your playlists…" }) : null,
+    loadError ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-2 flex items-center justify-between gap-3 text-xs text-error", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Couldn’t load your playlists. You can still upload without one." }),
+      onRetry ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          type: "button",
+          className: "btn btn-ghost btn-xs gap-1",
+          onClick: onRetry,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(RefreshCw, { className: "size-3", "aria-hidden": "true" }),
+            "Retry"
+          ]
+        }
+      ) : null
+    ] }) : null,
+    (value == null ? void 0 : value.__kind__) === "new" ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 space-y-3", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        Input,
+        {
+          label: "New playlist name",
+          "data-ocid": "new_playlist_title_input",
+          value: value.new.title,
+          maxLength: config.maxPlaylistTitleLength,
+          placeholder: "My playlist",
+          error,
+          disabled,
+          onChange: (event) => onChange({
+            __kind__: "new",
+            new: {
+              ...value.new,
+              title: event.target.value
+            }
+          })
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "flex cursor-pointer items-start gap-3 rounded-lg bg-base-200 p-3", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "input",
+          {
+            type: "checkbox",
+            "data-ocid": "new_playlist_private_checkbox",
+            className: "checkbox checkbox-sm checkbox-info mt-0.5",
+            checked: value.new.isPrivate,
+            disabled,
+            onChange: (event) => onChange({
+              __kind__: "new",
+              new: {
+                ...value.new,
+                isPrivate: event.target.checked
+              }
+            })
+          }
+        ),
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-sm font-medium", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(LockKeyhole, { className: "size-3.5", "aria-hidden": "true" }),
+            "Private playlist"
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-0.5 block text-xs text-muted-foreground", children: "Only you can open this playlist." })
+        ] })
+      ] })
+    ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "mt-2 flex items-center gap-1.5 text-xs text-muted-foreground", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(ListPlus, { className: "size-3.5", "aria-hidden": "true" }),
+      "Add this upload to one of your playlists."
+    ] })
+  ] });
+}
 function validateVideo(file) {
   if (file.size > config.maxVideoSizeBytes) {
     return `Video exceeds the ${formatBytes(config.maxVideoSizeBytes)} limit.`;
@@ -45099,12 +45844,20 @@ function validateThumbnail(file) {
   }
   return void 0;
 }
-function UploadForm({ onSubmit, disabled }) {
+function UploadForm({
+  onSubmit,
+  disabled,
+  playlists = [],
+  playlistsLoading = false,
+  playlistsError = false,
+  onRetryPlaylists
+}) {
   const [title, setTitle] = reactExports.useState("");
   const [description, setDescription] = reactExports.useState("");
   const [videoFile, setVideoFile] = reactExports.useState(null);
   const [thumbnailFile, setThumbnailFile] = reactExports.useState(null);
   const [isPrivate, setIsPrivate] = reactExports.useState(false);
+  const [playlist, setPlaylist] = reactExports.useState(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = reactExports.useState(null);
   const [errors, setErrors] = reactExports.useState({});
   const videoInputRef = reactExports.useRef(null);
@@ -45135,13 +45888,24 @@ function UploadForm({ onSubmit, disabled }) {
     if (!videoFile) nextErrors.video = "Choose a video to upload.";
     else nextErrors.video = validateVideo(videoFile);
     if (thumbnailFile) nextErrors.thumbnail = validateThumbnail(thumbnailFile);
+    if ((playlist == null ? void 0 : playlist.__kind__) === "new" && !playlist.new.title.trim()) {
+      nextErrors.playlist = "Playlist name is required.";
+    }
     setErrors(nextErrors);
-    if (nextErrors.title || nextErrors.video || nextErrors.thumbnail) return;
+    if (nextErrors.title || nextErrors.video || nextErrors.thumbnail || nextErrors.playlist)
+      return;
     onSubmit({
       file: videoFile,
       title: title.trim(),
       description: description.trim() || void 0,
       isPrivate,
+      playlist: (playlist == null ? void 0 : playlist.__kind__) === "new" ? {
+        __kind__: "new",
+        new: {
+          ...playlist.new,
+          title: playlist.new.title.trim()
+        }
+      } : playlist,
       thumbnail: thumbnailFile
     });
   };
@@ -45292,6 +46056,24 @@ function UploadForm({ onSubmit, disabled }) {
             /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "mt-0.5 block text-xs text-muted-foreground", children: isPrivate ? "Only you can find and watch this video." : "Public videos appear in feeds and subscriptions." })
           ] })
         ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          PlaylistPicker,
+          {
+            playlists,
+            value: playlist,
+            error: errors.playlist,
+            isLoading: playlistsLoading,
+            loadError: playlistsError,
+            onRetry: onRetryPlaylists,
+            disabled,
+            onChange: (nextPlaylist) => {
+              setPlaylist(nextPlaylist);
+              if (errors.playlist) {
+                setErrors((prev) => ({ ...prev, playlist: void 0 }));
+              }
+            }
+          }
+        ),
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "mb-1.5 block text-sm font-medium text-foreground", children: [
             "Thumbnail",
@@ -45457,7 +46239,7 @@ function UploadProgress({
 }
 class UploadService {
   /** Creates a draft backed by real object-storage references. */
-  createVideo(actor, title, description, video, thumbnail, filename, mimeType, fileSize, isPrivate) {
+  createVideo(actor, title, description, video, thumbnail, filename, mimeType, fileSize, isPrivate, playlist) {
     return actor.createVideo(
       title,
       description,
@@ -45466,7 +46248,8 @@ class UploadService {
       filename,
       mimeType,
       fileSize,
-      isPrivate
+      isPrivate,
+      playlist
     );
   }
   async toExternalBlob(file, onProgress) {
@@ -45478,7 +46261,7 @@ class UploadService {
     ).withUploadProgress((percentage) => onProgress == null ? void 0 : onProgress(percentage));
   }
   /** Uploads video/thumbnail bytes to object storage and publishes the record. */
-  async uploadVideo(actor, file, title, description, thumbnail, isPrivate, onProgress) {
+  async uploadVideo(actor, file, title, description, thumbnail, isPrivate, playlist, onProgress) {
     if (file.size === 0) {
       throw new Error("Choose a video that is not empty");
     }
@@ -45521,9 +46304,11 @@ class UploadService {
       file.name,
       file.type,
       BigInt(file.size),
-      isPrivate
+      isPrivate,
+      playlist
     );
-    return videoService.publishVideo(actor, draft.id);
+    const published = await videoService.publishVideo(actor, draft.video.id);
+    return { video: published, playlistId: draft.playlistId };
   }
 }
 const uploadService = new UploadService();
@@ -45549,6 +46334,7 @@ function useVideoUpload() {
           input.description ?? null,
           input.thumbnail ?? null,
           input.isPrivate,
+          input.playlist,
           (percentage) => {
             if (abortRef.current) return;
             setProgress(percentage);
@@ -45580,19 +46366,34 @@ function useVideoUpload() {
   };
 }
 function UploadPage() {
-  const { isAuthenticated, isInitializing, login } = useAuth();
+  const { isAuthenticated, isInitializing, login, principal } = useAuth();
+  const { actor, isFetching } = useActor(createActor);
+  const queryClient2 = useQueryClient();
   const { upload, cancel, progress, isUploading, error } = useVideoUpload();
   const [phase, setPhase] = reactExports.useState("idle");
   const [uploadedVideo, setUploadedVideo] = reactExports.useState(null);
+  const [uploadedPlaylistId, setUploadedPlaylistId] = reactExports.useState(
+    null
+  );
   const [pendingInput, setPendingInput] = reactExports.useState(
     null
   );
+  const playlistsQuery = useQuery({
+    queryKey: ["playlists", "mine", principal ?? "anonymous"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return playlistService.getMyPlaylists(actor);
+    },
+    enabled: isAuthenticated && !!actor && !isFetching
+  });
   const handleSubmit = async (values) => {
     setPendingInput(values);
     setPhase("uploading");
     try {
-      const video = await upload(values);
-      setUploadedVideo(video);
+      const result = await upload(values);
+      setUploadedVideo(result.video);
+      setUploadedPlaylistId(result.playlistId ?? null);
+      await queryClient2.invalidateQueries({ queryKey: ["playlists"] });
       setPhase("success");
     } catch {
       setPhase("error");
@@ -45604,6 +46405,7 @@ function UploadPage() {
   const handleReset = () => {
     setPhase("idle");
     setUploadedVideo(null);
+    setUploadedPlaylistId(null);
     setPendingInput(null);
   };
   if (isInitializing) {
@@ -45653,6 +46455,7 @@ function UploadPage() {
               {
                 to: "/watch/$videoId",
                 params: { videoId: uploadedVideo.id.toString() },
+                search: uploadedPlaylistId ? { list: uploadedPlaylistId.toString() } : {},
                 "data-ocid": "watch_video_link",
                 className: "btn btn-primary",
                 children: "Watch video"
@@ -45703,10 +46506,450 @@ function UploadPage() {
         fileSize: (pendingInput == null ? void 0 : pendingInput.file.size) ?? 0,
         onCancel: cancel
       }
-    ) : /* @__PURE__ */ jsxRuntimeExports.jsx(UploadForm, { onSubmit: handleSubmit, disabled: isUploading })
+    ) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+      UploadForm,
+      {
+        onSubmit: handleSubmit,
+        disabled: isUploading,
+        playlists: playlistsQuery.data ?? [],
+        playlistsLoading: playlistsQuery.isLoading,
+        playlistsError: playlistsQuery.isError,
+        onRetryPlaylists: () => void playlistsQuery.refetch()
+      }
+    )
   ] });
 }
-function VideoPlayer({ video, poster, onPlay }) {
+function QueueNavigation({
+  video,
+  playlistId,
+  index: index2,
+  label,
+  direction
+}) {
+  const Icon2 = direction === "previous" ? ChevronLeft : ChevronRight;
+  if (!video) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "button",
+      {
+        type: "button",
+        className: "btn btn-ghost btn-sm btn-square",
+        "aria-label": label,
+        disabled: true,
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { className: "size-4", "aria-hidden": "true" })
+      }
+    );
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    Link,
+    {
+      to: "/watch/$videoId",
+      params: { videoId: video.id.toString() },
+      search: { list: playlistId.toString(), index: index2 + 1 },
+      className: "btn btn-ghost btn-sm btn-square",
+      "aria-label": label,
+      children: /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { className: "size-4", "aria-hidden": "true" })
+    }
+  );
+}
+function PlaylistQueue({
+  view,
+  currentVideoId,
+  autoplayNext,
+  onAutoplayNextChange,
+  onDismiss
+}) {
+  const { playlist, videos } = view;
+  const currentIndex = videos.findIndex((video) => video.id === currentVideoId);
+  const previous = currentIndex > 0 ? videos[currentIndex - 1] : void 0;
+  const next = currentIndex >= 0 && currentIndex < videos.length - 1 ? videos[currentIndex + 1] : void 0;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "aside",
+    {
+      "data-ocid": "playlist_queue",
+      "aria-label": `Playlist: ${playlist.title}`,
+      className: "flex max-h-[calc(100svh-6rem)] flex-col overflow-hidden rounded-xl border border-border bg-card lg:sticky lg:top-20",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "border-b border-border p-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  ListVideo,
+                  {
+                    className: "size-4 shrink-0 text-brand",
+                    "aria-hidden": "true"
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "truncate font-display font-semibold text-foreground", children: playlist.title }),
+                playlist.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  LockKeyhole,
+                  {
+                    className: "size-3.5 shrink-0 text-muted-foreground",
+                    "aria-label": "Private playlist"
+                  }
+                ) : null
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("p", { className: "mt-1 text-xs text-muted-foreground", children: [
+                currentIndex >= 0 ? currentIndex + 1 : "–",
+                " / ",
+                videos.length
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: "btn btn-ghost btn-sm btn-square shrink-0",
+                "aria-label": "Close playlist",
+                onClick: onDismiss,
+                children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "size-4", "aria-hidden": "true" })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-2 flex items-center justify-between gap-3", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "flex cursor-pointer items-center gap-2 text-xs text-muted-foreground", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "input",
+                {
+                  type: "checkbox",
+                  className: "toggle toggle-info toggle-xs",
+                  checked: autoplayNext,
+                  onChange: (event) => onAutoplayNextChange(event.target.checked)
+                }
+              ),
+              "Autoplay"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                QueueNavigation,
+                {
+                  video: previous,
+                  playlistId: playlist.id,
+                  index: currentIndex - 1,
+                  label: "Previous video",
+                  direction: "previous"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                QueueNavigation,
+                {
+                  video: next,
+                  playlistId: playlist.id,
+                  index: currentIndex + 1,
+                  label: "Next video",
+                  direction: "next"
+                }
+              )
+            ] })
+          ] })
+        ] }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("ol", { className: "min-h-0 overflow-y-auto py-1", children: videos.map((video, index2) => {
+          var _a2;
+          const isCurrent = video.id === currentVideoId;
+          const thumbnailUrl = (_a2 = video.thumbnail) == null ? void 0 : _a2.getDirectURL();
+          return /* @__PURE__ */ jsxRuntimeExports.jsx("li", { children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            Link,
+            {
+              to: "/watch/$videoId",
+              params: { videoId: video.id.toString() },
+              search: { list: playlist.id.toString(), index: index2 + 1 },
+              "aria-current": isCurrent ? "page" : void 0,
+              className: `grid grid-cols-[1.25rem_7rem_minmax(0,1fr)] items-center gap-2 px-2 py-2 transition-colors hover:bg-base-200 ${isCurrent ? "bg-base-200" : ""}`,
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex justify-center text-xs text-muted-foreground", children: isCurrent ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Play,
+                  {
+                    className: "size-3 fill-current text-brand",
+                    "aria-hidden": "true"
+                  }
+                ) : index2 + 1 }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "aspect-video overflow-hidden rounded-md bg-muted", children: thumbnailUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  "img",
+                  {
+                    src: thumbnailUrl,
+                    alt: "",
+                    loading: "lazy",
+                    className: "size-full object-cover"
+                  }
+                ) : /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex size-full items-center justify-center", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+                  Play,
+                  {
+                    className: "size-5 text-muted-foreground",
+                    "aria-hidden": "true"
+                  }
+                ) }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "min-w-0 self-start py-0.5", children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "line-clamp-2 text-xs font-medium leading-snug text-foreground", children: video.title }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "mt-1 block text-[0.6875rem] text-muted-foreground", children: [
+                    formatCount(video.viewCount),
+                    " views"
+                  ] })
+                ] })
+              ]
+            }
+          ) }, video.id.toString());
+        }) })
+      ]
+    }
+  );
+}
+function PlaylistSaveButton({ video }) {
+  const { actor, isFetching } = useActor(createActor);
+  const { isAuthenticated, login, principal } = useAuth();
+  const queryClient2 = useQueryClient();
+  const [isOpen, setIsOpen] = reactExports.useState(false);
+  const [isCreating, setIsCreating] = reactExports.useState(false);
+  const [title, setTitle] = reactExports.useState("");
+  const [isPrivate, setIsPrivate] = reactExports.useState(false);
+  const [pendingId, setPendingId] = reactExports.useState(null);
+  const [error, setError] = reactExports.useState(null);
+  const queryKey = ["playlists", "mine", principal ?? "anonymous"];
+  const playlistsQuery = useQuery({
+    queryKey,
+    queryFn: async () => {
+      if (!actor) return [];
+      return playlistService.getMyPlaylists(actor);
+    },
+    enabled: isOpen && isAuthenticated && !!actor && !isFetching
+  });
+  const updatePlaylist = async (playlist, shouldContain) => {
+    if (!actor) return;
+    setPendingId(playlist.id.toString());
+    setError(null);
+    try {
+      const updated = shouldContain ? await playlistService.addVideo(actor, playlist.id, video.id) : await playlistService.removeVideo(actor, playlist.id, video.id);
+      queryClient2.setQueryData(
+        queryKey,
+        (current = []) => current.map((item) => item.id === updated.id ? updated : item)
+      );
+      await queryClient2.invalidateQueries({
+        queryKey: ["playlist", playlist.id.toString()]
+      });
+      await queryClient2.invalidateQueries({ queryKey: ["channel-playlists"] });
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Couldn't update playlist"
+      );
+    } finally {
+      setPendingId(null);
+    }
+  };
+  const createPlaylist = async (event) => {
+    event.preventDefault();
+    const name = title.trim();
+    if (!name) {
+      setError("Playlist name is required.");
+      return;
+    }
+    if (!actor) return;
+    setPendingId("new");
+    setError(null);
+    try {
+      const created = await playlistService.createPlaylist(
+        actor,
+        name,
+        isPrivate,
+        video.id
+      );
+      queryClient2.setQueryData(queryKey, (current = []) => [
+        created,
+        ...current
+      ]);
+      await queryClient2.invalidateQueries({ queryKey: ["channel-playlists"] });
+      setTitle("");
+      setIsPrivate(false);
+      setIsCreating(false);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Couldn't create playlist"
+      );
+    } finally {
+      setPendingId(null);
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "button",
+      {
+        type: "button",
+        "data-ocid": "save_to_playlist_button",
+        className: "btn btn-ghost btn-sm gap-2",
+        onClick: () => {
+          if (!isAuthenticated) {
+            login();
+            return;
+          }
+          setIsOpen(true);
+        },
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(ListPlus, { className: "size-4", "aria-hidden": "true" }),
+          "Save"
+        ]
+      }
+    ),
+    isOpen ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "dialog",
+      {
+        open: true,
+        className: "modal modal-open",
+        "aria-labelledby": "save-playlist-title",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "modal-box max-w-sm rounded-xl", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between gap-3", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "h2",
+                {
+                  id: "save-playlist-title",
+                  className: "font-display text-lg font-semibold",
+                  children: "Save to playlist"
+                }
+              ),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "btn btn-ghost btn-sm btn-square",
+                  "aria-label": "Close save dialog",
+                  onClick: () => setIsOpen(false),
+                  children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "size-4", "aria-hidden": "true" })
+                }
+              )
+            ] }),
+            playlistsQuery.isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "span",
+              {
+                className: "loading loading-spinner loading-sm mt-5",
+                "aria-label": "Loading playlists"
+              }
+            ) : playlistsQuery.isError ? /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 text-sm text-error", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Couldn’t load your playlists." }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                "button",
+                {
+                  type: "button",
+                  className: "btn btn-ghost btn-sm mt-2",
+                  onClick: () => void playlistsQuery.refetch(),
+                  children: "Try again"
+                }
+              )
+            ] }) : /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 max-h-64 space-y-1 overflow-y-auto", children: [
+              (playlistsQuery.data ?? []).map((playlist) => {
+                const containsVideo = playlist.videoIds.some(
+                  (id) => id === video.id
+                );
+                return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "label",
+                  {
+                    className: "flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-base-200",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        "input",
+                        {
+                          type: "checkbox",
+                          className: "checkbox checkbox-sm checkbox-info",
+                          checked: containsVideo,
+                          disabled: pendingId !== null,
+                          onChange: (event) => void updatePlaylist(playlist, event.target.checked)
+                        }
+                      ),
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "min-w-0 flex-1 truncate text-sm", children: playlist.title }),
+                      playlist.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        LockKeyhole,
+                        {
+                          className: "size-3.5 text-muted-foreground",
+                          "aria-label": "Private"
+                        }
+                      ) : null,
+                      containsVideo ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                        Check,
+                        {
+                          className: "size-3.5 text-success",
+                          "aria-hidden": "true"
+                        }
+                      ) : null
+                    ]
+                  },
+                  playlist.id.toString()
+                );
+              }),
+              (playlistsQuery.data ?? []).length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "py-3 text-sm text-muted-foreground", children: "You don’t have any playlists yet." }) : null
+            ] }),
+            error ? /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-3 text-sm text-error", children: error }) : null,
+            isCreating ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "form",
+              {
+                className: "mt-4 space-y-3 border-t border-border pt-4",
+                onSubmit: createPlaylist,
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(
+                    Input,
+                    {
+                      label: "Playlist name",
+                      value: title,
+                      maxLength: config.maxPlaylistTitleLength,
+                      onChange: (event) => setTitle(event.target.value),
+                      autoFocus: true
+                    }
+                  ),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("label", { className: "flex cursor-pointer items-center gap-2 text-sm", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      "input",
+                      {
+                        type: "checkbox",
+                        className: "checkbox checkbox-sm checkbox-info",
+                        checked: isPrivate,
+                        onChange: (event) => setIsPrivate(event.target.checked)
+                      }
+                    ),
+                    "Private playlist"
+                  ] }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex justify-end gap-2", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Button,
+                      {
+                        variant: "ghost",
+                        size: "sm",
+                        onClick: () => setIsCreating(false),
+                        children: "Cancel"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Button, { type: "submit", size: "sm", loading: pendingId === "new", children: "Create" })
+                  ] })
+                ]
+              }
+            ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "button",
+              {
+                type: "button",
+                className: "btn btn-ghost btn-sm mt-4 gap-2",
+                onClick: () => setIsCreating(true),
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx(Plus, { className: "size-4", "aria-hidden": "true" }),
+                  "New playlist"
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: "modal-backdrop",
+              "aria-label": "Close save dialog",
+              onClick: () => setIsOpen(false)
+            }
+          )
+        ]
+      }
+    ) : null
+  ] });
+}
+function VideoPlayer({
+  video,
+  poster,
+  onPlay,
+  onEnded
+}) {
   var _a2;
   const src = video.video.getDirectURL();
   const posterUrl = poster ?? ((_a2 = video.thumbnail) == null ? void 0 : _a2.getDirectURL());
@@ -45735,6 +46978,7 @@ function VideoPlayer({ video, poster, onPlay }) {
             onLoadedData: () => setIsReady(true),
             onError: () => setIsReady(true),
             onPlay,
+            onEnded,
             children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("track", { kind: "captions", label: "Captions" }),
               "Your browser does not support the video tag."
@@ -45767,17 +47011,34 @@ function useGetChannel(ownerId) {
     enabled: !!actor && !isFetching && !!ownerId
   });
 }
+function useGetPlaylist(playlistId, viewerKey) {
+  const { actor, isFetching } = useActor(createActor);
+  return useQuery({
+    queryKey: ["playlist", (playlistId == null ? void 0 : playlistId.toString()) ?? "none", viewerKey],
+    queryFn: async () => {
+      if (!actor || playlistId === null) return null;
+      return playlistService.getPlaylist(actor, playlistId);
+    },
+    enabled: !!actor && !isFetching && playlistId !== null
+  });
+}
 function WatchPage() {
   var _a2;
   const { videoId } = useParams({ from: "/watch/$videoId" });
+  const { list } = useSearch({ from: "/watch/$videoId" });
+  const navigate = useNavigate();
   const { principal } = useAuth();
   const { actor } = useActor(createActor);
   const queryClient2 = useQueryClient();
   const recordedViewRef = reactExports.useRef(null);
   const parsedId = /^\d+$/.test(videoId) ? BigInt(videoId) : null;
+  const playlistId = list && /^\d+$/.test(list) ? BigInt(list) : null;
   const viewerKey = principal ?? "anonymous";
   const videoQuery = useGetVideo(parsedId ?? 0n, viewerKey);
+  const playlistQuery = useGetPlaylist(playlistId, viewerKey);
   const video = videoQuery.data ?? null;
+  const playlistView = playlistQuery.data ?? null;
+  const [autoplayNext, setAutoplayNext] = reactExports.useState(true);
   const ownerId = (video == null ? void 0 : video.ownerId) ?? null;
   const channelQuery = useGetChannel(ownerId);
   const channel = channelQuery.data ?? null;
@@ -45795,6 +47056,34 @@ function WatchPage() {
       );
     }).catch(() => void 0);
   }, [actor, queryClient2, video, viewerKey]);
+  const navigateWithinPlaylist = reactExports.useCallback(
+    (nextVideo, index2) => {
+      if (playlistId === null) return;
+      void navigate({
+        to: "/watch/$videoId",
+        params: { videoId: nextVideo.id.toString() },
+        search: { list: playlistId.toString(), index: index2 + 1 }
+      });
+    },
+    [navigate, playlistId]
+  );
+  const playNext = reactExports.useCallback(() => {
+    if (!autoplayNext || !video || !playlistView) return;
+    const currentIndex = playlistView.videos.findIndex(
+      (item) => item.id === video.id
+    );
+    const nextVideo = playlistView.videos[currentIndex + 1];
+    if (currentIndex >= 0 && nextVideo) {
+      navigateWithinPlaylist(nextVideo, currentIndex + 1);
+    }
+  }, [autoplayNext, navigateWithinPlaylist, playlistView, video]);
+  const dismissPlaylist = reactExports.useCallback(() => {
+    void navigate({
+      to: "/watch/$videoId",
+      params: { videoId },
+      search: {}
+    });
+  }, [navigate, videoId]);
   if (videoQuery.isError) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 sm:p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
       ErrorState,
@@ -45833,101 +47122,181 @@ function WatchPage() {
   }
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
   const channelName = (channel == null ? void 0 : channel.displayName) ?? (channel == null ? void 0 : channel.username) ?? "Anonymous";
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mx-auto max-w-5xl p-4 sm:p-6", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      VideoPlayer,
-      {
-        video,
-        onPlay: recordFirstPlay
-      },
-      video.id.toString()
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "h1",
-        {
-          "data-ocid": "video_title",
-          className: "font-display text-xl font-semibold text-foreground sm:text-2xl",
-          children: video.title
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1 flex flex-wrap items-center justify-between gap-2", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1", "data-ocid": "video_views", children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "size-3.5", "aria-hidden": "true" }),
-            formatCount(video.viewCount),
-            " views"
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_size", children: formatBytes(video.fileSize) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_date", children: timeAgo(publishedDate) }),
-          video.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-info", children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(LockKeyhole, { className: "size-3.5", "aria-hidden": "true" }),
-              "Private"
-            ] })
-          ] }) : null
-        ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(VideoActions, { video })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 flex flex-col gap-4 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between", children: [
-        channel ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          Link,
-          {
-            to: "/channel/$userId",
-            params: { userId: video.ownerId.toString() },
-            "data-ocid": "channel_link",
-            className: "group flex min-w-0 items-center gap-3",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(
-                Avatar,
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-auto max-w-7xl p-4 sm:p-6", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: playlistId === null ? "" : "grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start",
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-w-0", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            VideoPlayer,
+            {
+              video,
+              onPlay: recordFirstPlay,
+              onEnded: playNext
+            },
+            video.id.toString()
+          ),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4", children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "h1",
+              {
+                "data-ocid": "video_title",
+                className: "font-display text-xl font-semibold text-foreground sm:text-2xl",
+                children: video.title
+              }
+            ),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-1 flex flex-wrap items-center justify-between gap-2", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                  "span",
+                  {
+                    className: "flex items-center gap-1",
+                    "data-ocid": "video_views",
+                    children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx(Eye, { className: "size-3.5", "aria-hidden": "true" }),
+                      formatCount(video.viewCount),
+                      " views"
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_size", children: formatBytes(video.fileSize) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "data-ocid": "video_date", children: timeAgo(publishedDate) }),
+                video.isPrivate ? /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { "aria-hidden": "true", children: "•" }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex items-center gap-1 text-info", children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(LockKeyhole, { className: "size-3.5", "aria-hidden": "true" }),
+                    "Private"
+                  ] })
+                ] }) : null
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-1", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(VideoActions, { video }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(PlaylistSaveButton, { video })
+              ] })
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "mt-4 flex flex-col gap-4 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between", children: [
+              channel ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                Link,
                 {
-                  src: (_a2 = channel.avatar) == null ? void 0 : _a2.getDirectURL(),
-                  name: channelName,
-                  size: "md"
+                  to: "/channel/$userId",
+                  params: { userId: video.ownerId.toString() },
+                  "data-ocid": "channel_link",
+                  className: "group flex min-w-0 items-center gap-3",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(
+                      Avatar,
+                      {
+                        src: (_a2 = channel.avatar) == null ? void 0 : _a2.getDirectURL(),
+                        name: channelName,
+                        size: "md"
+                      }
+                    ),
+                    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "min-w-0", children: [
+                      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block truncate text-sm font-medium text-foreground group-hover:text-primary", children: channelName }),
+                      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "block truncate text-xs text-muted-foreground", children: [
+                        "@",
+                        channel.username
+                      ] })
+                    ] })
+                  ]
+                }
+              ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
+                "div",
+                {
+                  "data-ocid": "anonymous_channel",
+                  className: "flex min-w-0 items-center gap-3",
+                  children: [
+                    /* @__PURE__ */ jsxRuntimeExports.jsx(Avatar, { name: "Anonymous", size: "md" }),
+                    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block truncate text-sm font-medium text-foreground", children: "Anonymous" })
+                  ]
                 }
               ),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "min-w-0", children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block truncate text-sm font-medium text-foreground group-hover:text-primary", children: channelName }),
-                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "block truncate text-xs text-muted-foreground", children: [
-                  "@",
-                  channel.username
-                ] })
+              channel ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+                SubscribeButton,
+                {
+                  channelId: video.ownerId.toString(),
+                  hidden: isOwnChannel,
+                  disabled: !principal
+                }
+              ) : null
+            ] }),
+            video.description ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 rounded-box border border-border bg-card p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "p",
+              {
+                "data-ocid": "video_description",
+                className: "whitespace-pre-wrap text-sm leading-relaxed text-foreground",
+                children: video.description
+              }
+            ) }) : null
+          ] })
+        ] }),
+        playlistId !== null ? playlistQuery.isLoading ? /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "div",
+          {
+            "data-ocid": "playlist_queue_skeleton",
+            className: "overflow-hidden rounded-xl border border-border bg-card",
+            "aria-label": "Loading playlist",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-3 border-b border-border p-4", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-5 w-3/4" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-3 w-20" })
+              ] }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2 p-3", children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 w-full" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 w-full" }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx(Skeleton, { className: "h-20 w-full" })
               ] })
             ]
           }
-        ) : /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "div",
+        ) : playlistQuery.isError || !playlistView ? /* @__PURE__ */ jsxRuntimeExports.jsx("aside", { className: "rounded-xl border border-border bg-card p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 font-medium text-foreground", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx(
+                ListVideo,
+                {
+                  className: "size-4 text-brand",
+                  "aria-hidden": "true"
+                }
+              ),
+              "Playlist unavailable"
+            ] }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "mt-2 text-sm text-muted-foreground", children: "It may be private, deleted, or no longer available." }),
+            playlistQuery.isError ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+              "button",
+              {
+                type: "button",
+                className: "btn btn-ghost btn-sm mt-2",
+                onClick: () => void playlistQuery.refetch(),
+                children: "Try again"
+              }
+            ) : null
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            "button",
+            {
+              type: "button",
+              className: "btn btn-ghost btn-sm btn-square",
+              "aria-label": "Close playlist",
+              onClick: dismissPlaylist,
+              children: /* @__PURE__ */ jsxRuntimeExports.jsx(X, { className: "size-4", "aria-hidden": "true" })
+            }
+          )
+        ] }) }) : /* @__PURE__ */ jsxRuntimeExports.jsx(
+          PlaylistQueue,
           {
-            "data-ocid": "anonymous_channel",
-            className: "flex min-w-0 items-center gap-3",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx(Avatar, { name: "Anonymous", size: "md" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block truncate text-sm font-medium text-foreground", children: "Anonymous" })
-            ]
-          }
-        ),
-        channel ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-          SubscribeButton,
-          {
-            channelId: video.ownerId.toString(),
-            hidden: isOwnChannel,
-            disabled: !principal
+            view: playlistView,
+            currentVideoId: video.id,
+            autoplayNext,
+            onAutoplayNextChange: setAutoplayNext,
+            onDismiss: dismissPlaylist
           }
         ) : null
-      ] }),
-      video.description ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mt-4 rounded-box border border-border bg-card p-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "p",
-        {
-          "data-ocid": "video_description",
-          className: "whitespace-pre-wrap text-sm leading-relaxed text-foreground",
-          children: video.description
-        }
-      ) }) : null
-    ] })
-  ] });
+      ]
+    }
+  ) });
 }
 const rootRoute = createRootRoute({
   component: MainLayout
@@ -45961,11 +47330,21 @@ const uploadRoute = createRoute({
 const watchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/watch/$videoId",
+  validateSearch: (search) => {
+    const list = typeof search.list === "string" && /^\d+$/.test(search.list) ? search.list : void 0;
+    const parsedIndex = typeof search.index === "number" ? search.index : typeof search.index === "string" ? Number(search.index) : void 0;
+    const index2 = parsedIndex !== void 0 && Number.isSafeInteger(parsedIndex) && parsedIndex > 0 ? parsedIndex : void 0;
+    return { ...list ? { list } : {}, ...index2 ? { index: index2 } : {} };
+  },
   component: WatchPage
 });
 const channelRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/channel/$userId",
+  validateSearch: (search) => {
+    const tab = search.tab === "playlists" ? "playlists" : void 0;
+    return tab ? { tab } : {};
+  },
   component: ChannelPage
 });
 const profileRoute = createRoute({
