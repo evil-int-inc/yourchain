@@ -41,20 +41,33 @@ export const Error = IDL.Variant({
   }),
 });
 export const Result__1 = IDL.Variant({ 'ok' : IDL.Null, 'err' : Error });
+export const UserId = IDL.Principal;
+export const Timestamp = IDL.Int;
+export const Playlist = IDL.Record({
+  'id' : IDL.Nat,
+  'title' : IDL.Text,
+  'ownerId' : UserId,
+  'createdAt' : Timestamp,
+  'updatedAt' : Timestamp,
+  'isPrivate' : IDL.Bool,
+  'videoIds' : IDL.Vec(IDL.Nat),
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
 export const ExternalBlob = IDL.Vec(IDL.Nat8);
+export const PlaylistSelection = IDL.Variant({
+  'new' : IDL.Record({ 'title' : IDL.Text, 'isPrivate' : IDL.Bool }),
+  'existing' : IDL.Nat,
+});
 export const VideoStatus = IDL.Variant({
   'deleted' : IDL.Null,
   'published' : IDL.Null,
   'processing' : IDL.Null,
   'draft' : IDL.Null,
 });
-export const UserId = IDL.Principal;
-export const Timestamp = IDL.Int;
 export const Video = IDL.Record({
   'id' : IDL.Nat,
   'status' : VideoStatus,
@@ -70,6 +83,10 @@ export const Video = IDL.Record({
   'filename' : IDL.Text,
   'viewCount' : IDL.Nat,
   'isPrivate' : IDL.Bool,
+});
+export const CreateVideoResult = IDL.Record({
+  'video' : Video,
+  'playlistId' : IDL.Opt(IDL.Nat),
 });
 export const Value = IDL.Variant({
   'int' : IDL.Int,
@@ -93,6 +110,21 @@ export const User = IDL.Record({
   'avatar' : IDL.Opt(ExternalBlob),
 });
 export const Cursor = IDL.Nat;
+export const PlaylistSummary = IDL.Record({
+  'id' : IDL.Nat,
+  'title' : IDL.Text,
+  'thumbnail' : IDL.Opt(ExternalBlob),
+  'videoCount' : IDL.Nat,
+  'firstVideoId' : IDL.Opt(IDL.Nat),
+  'ownerId' : UserId,
+  'createdAt' : Timestamp,
+  'updatedAt' : Timestamp,
+  'isPrivate' : IDL.Bool,
+});
+export const Page_2 = IDL.Record({
+  'items' : IDL.Vec(PlaylistSummary),
+  'nextCursor' : IDL.Opt(Cursor),
+});
 export const Page = IDL.Record({
   'items' : IDL.Vec(Video),
   'nextCursor' : IDL.Opt(Cursor),
@@ -111,6 +143,10 @@ export const Notification = IDL.Record({
 export const Page_1 = IDL.Record({
   'items' : IDL.Vec(Notification),
   'nextCursor' : IDL.Opt(Cursor),
+});
+export const PlaylistView = IDL.Record({
+  'playlist' : PlaylistSummary,
+  'videos' : IDL.Vec(Video),
 });
 
 export const idlService = IDL.Service({
@@ -143,7 +179,13 @@ export const idlService = IDL.Service({
   '_initialize_access_control' : IDL.Func([], [], []),
   '_internet_identity_sign_in_finish' : IDL.Func([], [Result__1], []),
   '_internet_identity_sign_in_start' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
+  'addVideoToPlaylist' : IDL.Func([IDL.Nat, IDL.Nat], [Playlist], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'createPlaylist' : IDL.Func(
+      [IDL.Text, IDL.Bool, IDL.Opt(IDL.Nat)],
+      [Playlist],
+      [],
+    ),
   'createVideo' : IDL.Func(
       [
         IDL.Text,
@@ -154,8 +196,9 @@ export const idlService = IDL.Service({
         IDL.Text,
         IDL.Nat,
         IDL.Bool,
+        IDL.Opt(PlaylistSelection),
       ],
-      [Video],
+      [CreateVideoResult],
       [],
     ),
   'deleteVideo' : IDL.Func([IDL.Nat], [], []),
@@ -165,10 +208,17 @@ export const idlService = IDL.Service({
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getChannel' : IDL.Func([UserId], [IDL.Opt(User)], ['query']),
   'getChannelByUsername' : IDL.Func([IDL.Text], [IDL.Opt(User)], ['query']),
+  'getChannelPlaylists' : IDL.Func(
+      [UserId, Cursor, IDL.Nat],
+      [Page_2],
+      ['query'],
+    ),
   'getChannelVideos' : IDL.Func([UserId, Cursor, IDL.Nat], [Page], ['query']),
   'getFeed' : IDL.Func([Cursor, IDL.Nat], [Page], ['query']),
+  'getMyPlaylists' : IDL.Func([], [IDL.Vec(Playlist)], ['query']),
   'getMyVideos' : IDL.Func([Cursor, IDL.Nat], [Page], ['query']),
   'getNotifications' : IDL.Func([Cursor, IDL.Nat], [Page_1], ['query']),
+  'getPlaylist' : IDL.Func([IDL.Nat], [IDL.Opt(PlaylistView)], ['query']),
   'getStorageProviders' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
   'getSubscribedChannels' : IDL.Func([], [IDL.Vec(UserId)], ['query']),
   'getSubscriberCount' : IDL.Func([UserId], [IDL.Nat], ['query']),
@@ -181,6 +231,7 @@ export const idlService = IDL.Service({
   'publishVideo' : IDL.Func([IDL.Nat], [Video], []),
   'recordVideoView' : IDL.Func([IDL.Nat], [IDL.Nat], []),
   'registerStorageProvider' : IDL.Func([IDL.Text], [], []),
+  'removeVideoFromPlaylist' : IDL.Func([IDL.Nat, IDL.Nat], [Playlist], []),
   'saveProfile' : IDL.Func(
       [IDL.Text, IDL.Text, IDL.Opt(ExternalBlob), IDL.Bool, IDL.Opt(IDL.Text)],
       [User],
@@ -227,20 +278,33 @@ export const idlFactory = ({ IDL }) => {
     }),
   });
   const Result__1 = IDL.Variant({ 'ok' : IDL.Null, 'err' : Error });
+  const UserId = IDL.Principal;
+  const Timestamp = IDL.Int;
+  const Playlist = IDL.Record({
+    'id' : IDL.Nat,
+    'title' : IDL.Text,
+    'ownerId' : UserId,
+    'createdAt' : Timestamp,
+    'updatedAt' : Timestamp,
+    'isPrivate' : IDL.Bool,
+    'videoIds' : IDL.Vec(IDL.Nat),
+  });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
   const ExternalBlob = IDL.Vec(IDL.Nat8);
+  const PlaylistSelection = IDL.Variant({
+    'new' : IDL.Record({ 'title' : IDL.Text, 'isPrivate' : IDL.Bool }),
+    'existing' : IDL.Nat,
+  });
   const VideoStatus = IDL.Variant({
     'deleted' : IDL.Null,
     'published' : IDL.Null,
     'processing' : IDL.Null,
     'draft' : IDL.Null,
   });
-  const UserId = IDL.Principal;
-  const Timestamp = IDL.Int;
   const Video = IDL.Record({
     'id' : IDL.Nat,
     'status' : VideoStatus,
@@ -256,6 +320,10 @@ export const idlFactory = ({ IDL }) => {
     'filename' : IDL.Text,
     'viewCount' : IDL.Nat,
     'isPrivate' : IDL.Bool,
+  });
+  const CreateVideoResult = IDL.Record({
+    'video' : Video,
+    'playlistId' : IDL.Opt(IDL.Nat),
   });
   const Value = IDL.Variant({
     'int' : IDL.Int,
@@ -279,6 +347,21 @@ export const idlFactory = ({ IDL }) => {
     'avatar' : IDL.Opt(ExternalBlob),
   });
   const Cursor = IDL.Nat;
+  const PlaylistSummary = IDL.Record({
+    'id' : IDL.Nat,
+    'title' : IDL.Text,
+    'thumbnail' : IDL.Opt(ExternalBlob),
+    'videoCount' : IDL.Nat,
+    'firstVideoId' : IDL.Opt(IDL.Nat),
+    'ownerId' : UserId,
+    'createdAt' : Timestamp,
+    'updatedAt' : Timestamp,
+    'isPrivate' : IDL.Bool,
+  });
+  const Page_2 = IDL.Record({
+    'items' : IDL.Vec(PlaylistSummary),
+    'nextCursor' : IDL.Opt(Cursor),
+  });
   const Page = IDL.Record({
     'items' : IDL.Vec(Video),
     'nextCursor' : IDL.Opt(Cursor),
@@ -297,6 +380,10 @@ export const idlFactory = ({ IDL }) => {
   const Page_1 = IDL.Record({
     'items' : IDL.Vec(Notification),
     'nextCursor' : IDL.Opt(Cursor),
+  });
+  const PlaylistView = IDL.Record({
+    'playlist' : PlaylistSummary,
+    'videos' : IDL.Vec(Video),
   });
   
   return IDL.Service({
@@ -329,7 +416,13 @@ export const idlFactory = ({ IDL }) => {
     '_initialize_access_control' : IDL.Func([], [], []),
     '_internet_identity_sign_in_finish' : IDL.Func([], [Result__1], []),
     '_internet_identity_sign_in_start' : IDL.Func([], [IDL.Vec(IDL.Nat8)], []),
+    'addVideoToPlaylist' : IDL.Func([IDL.Nat, IDL.Nat], [Playlist], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'createPlaylist' : IDL.Func(
+        [IDL.Text, IDL.Bool, IDL.Opt(IDL.Nat)],
+        [Playlist],
+        [],
+      ),
     'createVideo' : IDL.Func(
         [
           IDL.Text,
@@ -340,8 +433,9 @@ export const idlFactory = ({ IDL }) => {
           IDL.Text,
           IDL.Nat,
           IDL.Bool,
+          IDL.Opt(PlaylistSelection),
         ],
-        [Video],
+        [CreateVideoResult],
         [],
       ),
     'deleteVideo' : IDL.Func([IDL.Nat], [], []),
@@ -351,10 +445,17 @@ export const idlFactory = ({ IDL }) => {
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getChannel' : IDL.Func([UserId], [IDL.Opt(User)], ['query']),
     'getChannelByUsername' : IDL.Func([IDL.Text], [IDL.Opt(User)], ['query']),
+    'getChannelPlaylists' : IDL.Func(
+        [UserId, Cursor, IDL.Nat],
+        [Page_2],
+        ['query'],
+      ),
     'getChannelVideos' : IDL.Func([UserId, Cursor, IDL.Nat], [Page], ['query']),
     'getFeed' : IDL.Func([Cursor, IDL.Nat], [Page], ['query']),
+    'getMyPlaylists' : IDL.Func([], [IDL.Vec(Playlist)], ['query']),
     'getMyVideos' : IDL.Func([Cursor, IDL.Nat], [Page], ['query']),
     'getNotifications' : IDL.Func([Cursor, IDL.Nat], [Page_1], ['query']),
+    'getPlaylist' : IDL.Func([IDL.Nat], [IDL.Opt(PlaylistView)], ['query']),
     'getStorageProviders' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     'getSubscribedChannels' : IDL.Func([], [IDL.Vec(UserId)], ['query']),
     'getSubscriberCount' : IDL.Func([UserId], [IDL.Nat], ['query']),
@@ -367,6 +468,7 @@ export const idlFactory = ({ IDL }) => {
     'publishVideo' : IDL.Func([IDL.Nat], [Video], []),
     'recordVideoView' : IDL.Func([IDL.Nat], [IDL.Nat], []),
     'registerStorageProvider' : IDL.Func([IDL.Text], [], []),
+    'removeVideoFromPlaylist' : IDL.Func([IDL.Nat, IDL.Nat], [Playlist], []),
     'saveProfile' : IDL.Func(
         [
           IDL.Text,

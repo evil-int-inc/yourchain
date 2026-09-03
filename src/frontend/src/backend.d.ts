@@ -26,7 +26,10 @@ export interface Video {
     isPrivate: boolean;
 }
 export type Timestamp = bigint;
-export type Cursor = bigint;
+export interface PlaylistView {
+    playlist: PlaylistSummary;
+    videos: Array<Video>;
+}
 export type NotificationKind = {
     __kind__: "newVideo";
     newVideo: {
@@ -39,6 +42,7 @@ export type NotificationKind = {
         channelId: UserId;
     };
 };
+export type Cursor = bigint;
 export interface User {
     id: UserId;
     bio?: string;
@@ -54,10 +58,35 @@ export type Result__1 = {
     __kind__: "err";
     err: Error_;
 };
+export interface Playlist {
+    id: bigint;
+    title: string;
+    ownerId: UserId;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+    isPrivate: boolean;
+    videoIds: Array<bigint>;
+}
+export interface Page_2 {
+    items: Array<PlaylistSummary>;
+    nextCursor?: Cursor;
+}
 export interface Page_1 {
     items: Array<Notification>;
     nextCursor?: Cursor;
 }
+export interface PlaylistSummary {
+    id: bigint;
+    title: string;
+    thumbnail?: ExternalBlob;
+    videoCount: bigint;
+    firstVideoId?: bigint;
+    ownerId: UserId;
+    createdAt: Timestamp;
+    updatedAt: Timestamp;
+    isPrivate: boolean;
+}
+export type UserId = Principal;
 export type Error_ = {
     __kind__: "FrontendOriginsNotConfigured";
     FrontendOriginsNotConfigured: null;
@@ -102,11 +131,20 @@ export type Error_ = {
         expected: Array<string>;
     };
 };
-export type UserId = Principal;
 export interface Result {
     hasMore: boolean;
     rows: Array<Array<Cell>>;
 }
+export type PlaylistSelection = {
+    __kind__: "new";
+    new: {
+        title: string;
+        isPrivate: boolean;
+    };
+} | {
+    __kind__: "existing";
+    existing: bigint;
+};
 export interface Page {
     items: Array<Video>;
     nextCursor?: Cursor;
@@ -121,6 +159,10 @@ export interface Notification {
 export interface Cell {
     value: Value;
     name: string;
+}
+export interface CreateVideoResult {
+    video: Video;
+    playlistId?: bigint;
 }
 export type Value = {
     __kind__: "int";
@@ -153,8 +195,10 @@ export enum VideoStatus {
     draft = "draft"
 }
 export interface backendInterface {
+    addVideoToPlaylist(playlistId: bigint, videoId: bigint): Promise<Playlist>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
-    createVideo(title: string, description: string | null, video: ExternalBlob, thumbnail: ExternalBlob | null, filename: string, mimeType: string, fileSize: bigint, isPrivate: boolean): Promise<Video>;
+    createPlaylist(title: string, isPrivate: boolean, initialVideoId: bigint | null): Promise<Playlist>;
+    createVideo(title: string, description: string | null, video: ExternalBlob, thumbnail: ExternalBlob | null, filename: string, mimeType: string, fileSize: bigint, isPrivate: boolean, playlist: PlaylistSelection | null): Promise<CreateVideoResult>;
     deleteVideo(videoId: bigint): Promise<void>;
     execute(qJson: string): Promise<Result>;
     getApiDoc(): Promise<string>;
@@ -162,10 +206,13 @@ export interface backendInterface {
     getCallerUserRole(): Promise<UserRole>;
     getChannel(userId: UserId): Promise<User | null>;
     getChannelByUsername(username: string): Promise<User | null>;
+    getChannelPlaylists(userId: UserId, cursor: Cursor, limit: bigint): Promise<Page_2>;
     getChannelVideos(userId: UserId, cursor: Cursor, limit: bigint): Promise<Page>;
     getFeed(cursor: Cursor, limit: bigint): Promise<Page>;
+    getMyPlaylists(): Promise<Array<Playlist>>;
     getMyVideos(cursor: Cursor, limit: bigint): Promise<Page>;
     getNotifications(cursor: Cursor, limit: bigint): Promise<Page_1>;
+    getPlaylist(playlistId: bigint): Promise<PlaylistView | null>;
     getStorageProviders(): Promise<Array<string>>;
     getSubscribedChannels(): Promise<Array<UserId>>;
     getSubscriberCount(channelId: UserId): Promise<bigint>;
@@ -178,6 +225,7 @@ export interface backendInterface {
     publishVideo(videoId: bigint): Promise<Video>;
     recordVideoView(videoId: bigint): Promise<bigint>;
     registerStorageProvider(providerId: string): Promise<void>;
+    removeVideoFromPlaylist(playlistId: bigint, videoId: bigint): Promise<Playlist>;
     saveProfile(displayName: string, username: string, avatar: ExternalBlob | null, removeAvatar: boolean, bio: string | null): Promise<User>;
     schema(): Promise<string>;
     subscribe(channelId: UserId): Promise<void>;

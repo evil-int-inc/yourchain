@@ -6,14 +6,17 @@ import Set "mo:core/Set";
 import AccessControl "mo:caffeineai-authorization/access-control";
 import ObjectStorage "mo:caffeineai-object-storage/Storage";
 import Common "../types/common";
+import Playlists "../types/playlists";
 import Videos "../types/videos";
 import Notifications "../types/notifications";
 import VideosLib "../lib/videos";
 import NotificationsLib "../lib/notifications";
+import PlaylistsLib "../lib/playlists";
 
 mixin (
   accessControlState : AccessControl.AccessControlState,
   videos : Map.Map<Nat, Videos.Video>,
+  playlists : Map.Map<Nat, Playlists.Playlist>,
   counters : Common.Counters,
   subscribers : Map.Map<Common.UserId, Set.Set<Common.UserId>>,
   notifications : Map.Map<Common.UserId, List.List<Notifications.Notification>>,
@@ -27,7 +30,8 @@ mixin (
     mimeType : Text,
     fileSize : Nat,
     isPrivate : Bool,
-  ) : async Videos.Video {
+    playlist : ?Videos.PlaylistSelection,
+  ) : async Videos.CreateVideoResult {
     if (not AccessControl.hasPermission(accessControlState, caller, #user)) {
       Runtime.trap("Unauthorized: Only users can perform this action");
     };
@@ -51,7 +55,33 @@ mixin (
     if (fileSize == 0 or fileSize > 1_073_741_824) {
       Runtime.trap("Video must be between 1 byte and 1 GB");
     };
-    VideosLib.createVideo(videos, counters, caller, title, description, video, thumbnail, filename, mimeType, fileSize, isPrivate, Time.now());
+    switch (playlist) {
+      case (?#existing(playlistId)) {
+        let existing = PlaylistsLib.getPlaylist(playlists, playlistId) ?? Runtime.trap("Playlist not found");
+        if (existing.ownerId != caller) {
+          Runtime.trap("Playlist not found");
+        };
+      };
+      case (?#new(details)) {
+        PlaylistsLib.validateTitle(details.title);
+      };
+      case null {};
+    };
+
+    let now = Time.now();
+    let created = VideosLib.createVideo(videos, counters, caller, title, description, video, thumbnail, filename, mimeType, fileSize, isPrivate, now);
+    let playlistId = switch (playlist) {
+      case (?#existing(id)) {
+        ignore PlaylistsLib.addVideo(playlists, id, created.id, now);
+        ?id;
+      };
+      case (?#new(details)) {
+        let createdPlaylist = PlaylistsLib.createPlaylist(playlists, counters, caller, details.title, details.isPrivate, [created.id], now);
+        ?createdPlaylist.id;
+      };
+      case null { null };
+    };
+    { video = created; playlistId };
   };
 
   public shared ({ caller }) func publishVideo(videoId : Nat) : async Videos.Video {
@@ -85,7 +115,9 @@ mixin (
     if (video.ownerId != caller) {
       Runtime.trap("Unauthorized: Not the video owner");
     };
+    let now = Time.now();
     VideosLib.deleteVideo(videos, videoId);
+    PlaylistsLib.removeVideoFromAll(playlists, videoId, now);
   };
 
   public query ({ caller }) func getVideo(videoId : Nat) : async ?Videos.Video {

@@ -71,6 +71,46 @@ type Result =
    hasMore: bool;
    rows: vec vec Cell;
  };
+type PlaylistView = 
+ record {
+   playlist: PlaylistSummary;
+   videos: vec Video;
+ };
+type PlaylistSummary = 
+ record {
+   createdAt: Timestamp;
+   firstVideoId: opt nat;
+   id: nat;
+   isPrivate: bool;
+   ownerId: UserId;
+   thumbnail: opt ExternalBlob;
+   title: text;
+   updatedAt: Timestamp;
+   videoCount: nat;
+ };
+type PlaylistSelection = 
+ variant {
+   existing: nat;
+   new: record {
+          isPrivate: bool;
+          title: text;
+        };
+ };
+type Playlist = 
+ record {
+   createdAt: Timestamp;
+   id: nat;
+   isPrivate: bool;
+   ownerId: UserId;
+   title: text;
+   updatedAt: Timestamp;
+   videoIds: vec nat;
+ };
+type Page_2 = 
+ record {
+   items: vec PlaylistSummary;
+   nextCursor: opt Cursor;
+ };
 type Page_1 = 
  record {
    items: vec Notification;
@@ -121,6 +161,11 @@ type Error =
    UntrustedSsoSource: record {domain: text;};
  };
 type Cursor = nat;
+type CreateVideoResult = 
+ record {
+   playlistId: opt nat;
+   video: Video;
+ };
 type Cell = 
  record {
    name: text;
@@ -139,10 +184,14 @@ service : {
   _initialize_access_control: () -> ();
   _internet_identity_sign_in_finish: () -> (Result__1);
   _internet_identity_sign_in_start: () -> (blob);
+  addVideoToPlaylist: (playlistId: nat, videoId: nat) -> (Playlist);
   assignCallerUserRole: (user: principal, role: UserRole) -> ();
+  createPlaylist: (title: text, isPrivate: bool, initialVideoId: opt nat) ->
+   (Playlist);
   createVideo: (title: text, description: opt text, video: ExternalBlob,
    thumbnail: opt ExternalBlob, filename: text, mimeType: text, fileSize:
-   nat, isPrivate: bool) -> (Video);
+   nat, isPrivate: bool, playlist: opt PlaylistSelection) ->
+   (CreateVideoResult);
   deleteVideo: (videoId: nat) -> ();
   execute: (qJson: text) -> (Result) query;
   getApiDoc: () -> (text) query;
@@ -150,11 +199,15 @@ service : {
   getCallerUserRole: () -> (UserRole) query;
   getChannel: (userId: UserId) -> (opt User) query;
   getChannelByUsername: (username: text) -> (opt User) query;
+  getChannelPlaylists: (userId: UserId, cursor: Cursor, limit: nat) ->
+   (Page_2) query;
   getChannelVideos: (userId: UserId, cursor: Cursor, limit: nat) ->
    (Page) query;
   getFeed: (cursor: Cursor, limit: nat) -> (Page) query;
+  getMyPlaylists: () -> (vec Playlist) query;
   getMyVideos: (cursor: Cursor, limit: nat) -> (Page) query;
   getNotifications: (cursor: Cursor, limit: nat) -> (Page_1) query;
+  getPlaylist: (playlistId: nat) -> (opt PlaylistView) query;
   getStorageProviders: () -> (vec text) query;
   getSubscribedChannels: () -> (vec UserId) query;
   getSubscriberCount: (channelId: UserId) -> (nat) query;
@@ -167,6 +220,7 @@ service : {
   publishVideo: (videoId: nat) -> (Video);
   recordVideoView: (videoId: nat) -> (nat);
   registerStorageProvider: (providerId: text) -> ();
+  removeVideoFromPlaylist: (playlistId: nat, videoId: nat) -> (Playlist);
   saveProfile: (displayName: text, username: text, avatar: opt ExternalBlob,
    removeAvatar: bool, bio: opt text) -> (User);
   schema: () -> (text) query;

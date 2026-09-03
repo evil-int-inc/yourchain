@@ -9,7 +9,11 @@ import {
 import { UploadProgress } from "@/components/upload/UploadProgress";
 import { useAuth } from "@/hooks/useAuth";
 import { useVideoUpload } from "@/hooks/useVideoUpload";
+import { playlistService } from "@/services/playlists";
+import type { Playlist } from "@/types";
 import type { Video } from "@/types";
+import { useActor } from "@caffeineai/core-infrastructure";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
 import { CheckCircle2, LogIn, Upload } from "lucide-react";
 import { useState } from "react";
@@ -17,20 +21,35 @@ import { useState } from "react";
 type Phase = "idle" | "uploading" | "success" | "error";
 
 export function UploadPage() {
-  const { isAuthenticated, isInitializing, login } = useAuth();
+  const { isAuthenticated, isInitializing, login, principal } = useAuth();
+  const { actor, isFetching } = useActor(createActor);
+  const queryClient = useQueryClient();
   const { upload, cancel, progress, isUploading, error } = useVideoUpload();
   const [phase, setPhase] = useState<Phase>("idle");
   const [uploadedVideo, setUploadedVideo] = useState<Video | null>(null);
+  const [uploadedPlaylistId, setUploadedPlaylistId] = useState<bigint | null>(
+    null,
+  );
   const [pendingInput, setPendingInput] = useState<UploadFormValues | null>(
     null,
   );
+  const playlistsQuery = useQuery<Playlist[]>({
+    queryKey: ["playlists", "mine", principal ?? "anonymous"],
+    queryFn: async () => {
+      if (!actor) return [];
+      return playlistService.getMyPlaylists(actor);
+    },
+    enabled: isAuthenticated && !!actor && !isFetching,
+  });
 
   const handleSubmit = async (values: UploadFormValues) => {
     setPendingInput(values);
     setPhase("uploading");
     try {
-      const video = await upload(values);
-      setUploadedVideo(video);
+      const result = await upload(values);
+      setUploadedVideo(result.video);
+      setUploadedPlaylistId(result.playlistId ?? null);
+      await queryClient.invalidateQueries({ queryKey: ["playlists"] });
       setPhase("success");
     } catch {
       setPhase("error");
@@ -44,6 +63,7 @@ export function UploadPage() {
   const handleReset = () => {
     setPhase("idle");
     setUploadedVideo(null);
+    setUploadedPlaylistId(null);
     setPendingInput(null);
   };
 
@@ -110,6 +130,11 @@ export function UploadPage() {
             <Link
               to="/watch/$videoId"
               params={{ videoId: uploadedVideo.id.toString() }}
+              search={
+                uploadedPlaylistId
+                  ? { list: uploadedPlaylistId.toString() }
+                  : {}
+              }
               data-ocid="watch_video_link"
               className="btn btn-primary"
             >
@@ -157,8 +182,16 @@ export function UploadPage() {
           onCancel={cancel}
         />
       ) : (
-        <UploadForm onSubmit={handleSubmit} disabled={isUploading} />
+        <UploadForm
+          onSubmit={handleSubmit}
+          disabled={isUploading}
+          playlists={playlistsQuery.data ?? []}
+          playlistsLoading={playlistsQuery.isLoading}
+          playlistsError={playlistsQuery.isError}
+          onRetryPlaylists={() => void playlistsQuery.refetch()}
+        />
       )}
     </div>
   );
 }
+import { createActor } from "@/backend";

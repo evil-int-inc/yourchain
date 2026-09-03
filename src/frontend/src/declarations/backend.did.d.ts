@@ -11,6 +11,10 @@ import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
 export interface Cell { 'value' : Value, 'name' : string }
+export interface CreateVideoResult {
+  'video' : Video,
+  'playlistId' : [] | [bigint],
+}
 export type Cursor = bigint;
 export type Error = { 'FrontendOriginsNotConfigured' : null } |
   {
@@ -43,6 +47,38 @@ export interface Page { 'items' : Array<Video>, 'nextCursor' : [] | [Cursor] }
 export interface Page_1 {
   'items' : Array<Notification>,
   'nextCursor' : [] | [Cursor],
+}
+export interface Page_2 {
+  'items' : Array<PlaylistSummary>,
+  'nextCursor' : [] | [Cursor],
+}
+export interface Playlist {
+  'id' : bigint,
+  'title' : string,
+  'ownerId' : UserId,
+  'createdAt' : Timestamp,
+  'updatedAt' : Timestamp,
+  'isPrivate' : boolean,
+  'videoIds' : Array<bigint>,
+}
+export type PlaylistSelection = {
+    'new' : { 'title' : string, 'isPrivate' : boolean }
+  } |
+  { 'existing' : bigint };
+export interface PlaylistSummary {
+  'id' : bigint,
+  'title' : string,
+  'thumbnail' : [] | [ExternalBlob],
+  'videoCount' : bigint,
+  'firstVideoId' : [] | [bigint],
+  'ownerId' : UserId,
+  'createdAt' : Timestamp,
+  'updatedAt' : Timestamp,
+  'isPrivate' : boolean,
+}
+export interface PlaylistView {
+  'playlist' : PlaylistSummary,
+  'videos' : Array<Video>,
 }
 export interface Result { 'hasMore' : boolean, 'rows' : Array<Array<Cell>> }
 export type Result__1 = { 'ok' : null } |
@@ -119,7 +155,9 @@ export interface _SERVICE {
   '_initialize_access_control' : ActorMethod<[], undefined>,
   '_internet_identity_sign_in_finish' : ActorMethod<[], Result__1>,
   '_internet_identity_sign_in_start' : ActorMethod<[], Uint8Array>,
+  'addVideoToPlaylist' : ActorMethod<[bigint, bigint], Playlist>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'createPlaylist' : ActorMethod<[string, boolean, [] | [bigint]], Playlist>,
   'createVideo' : ActorMethod<
     [
       string,
@@ -130,8 +168,9 @@ export interface _SERVICE {
       string,
       bigint,
       boolean,
+      [] | [PlaylistSelection],
     ],
-    Video
+    CreateVideoResult
   >,
   'deleteVideo' : ActorMethod<[bigint], undefined>,
   'execute' : ActorMethod<[string], Result>,
@@ -140,10 +179,13 @@ export interface _SERVICE {
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getChannel' : ActorMethod<[UserId], [] | [User]>,
   'getChannelByUsername' : ActorMethod<[string], [] | [User]>,
+  'getChannelPlaylists' : ActorMethod<[UserId, Cursor, bigint], Page_2>,
   'getChannelVideos' : ActorMethod<[UserId, Cursor, bigint], Page>,
   'getFeed' : ActorMethod<[Cursor, bigint], Page>,
+  'getMyPlaylists' : ActorMethod<[], Array<Playlist>>,
   'getMyVideos' : ActorMethod<[Cursor, bigint], Page>,
   'getNotifications' : ActorMethod<[Cursor, bigint], Page_1>,
+  'getPlaylist' : ActorMethod<[bigint], [] | [PlaylistView]>,
   'getStorageProviders' : ActorMethod<[], Array<string>>,
   'getSubscribedChannels' : ActorMethod<[], Array<UserId>>,
   'getSubscriberCount' : ActorMethod<[UserId], bigint>,
@@ -156,6 +198,7 @@ export interface _SERVICE {
   'publishVideo' : ActorMethod<[bigint], Video>,
   'recordVideoView' : ActorMethod<[bigint], bigint>,
   'registerStorageProvider' : ActorMethod<[string], undefined>,
+  'removeVideoFromPlaylist' : ActorMethod<[bigint, bigint], Playlist>,
   'saveProfile' : ActorMethod<
     [string, string, [] | [ExternalBlob], boolean, [] | [string]],
     User

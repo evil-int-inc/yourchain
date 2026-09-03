@@ -17,6 +17,7 @@ import MixinObjectStorage "mo:caffeineai-object-storage/Mixin";
 import Common "types/common";
 import Users "types/users";
 import Videos "types/videos";
+import Playlists "types/playlists";
 import Notifications "types/notifications";
 import Storage "types/storage";
 import UsersApi "mixins/users-api";
@@ -25,6 +26,7 @@ import StorageApi "mixins/storage-api";
 import SubscriptionsApi "mixins/subscriptions-api";
 import NotificationsApi "mixins/notifications-api";
 import FeedApi "mixins/feed-api";
+import PlaylistsApi "mixins/playlists-api";
 import ApiDocMixin "mixins/api-doc";
 
 actor {
@@ -74,6 +76,7 @@ actor {
   let users : Map.Map<Common.UserId, Users.User>;
   let usernames : Map.Map<Text, Common.UserId>;
   let videos : Map.Map<Nat, Videos.Video>;
+  let playlists : Map.Map<Nat, Playlists.Playlist>;
   let uploadSessions : Map.Map<Nat, Videos.UploadSession>;
   let counters : Common.Counters;
   let subscriptions : Map.Map<Common.UserId, Set.Set<Common.UserId>>;
@@ -84,11 +87,12 @@ actor {
   include MixinAuthorization(accessControlState, null);
   include MixinObjectStorage();
   include UsersApi(accessControlState, users, usernames);
-  include VideosApi(accessControlState, videos, counters, subscribers, notifications);
+  include VideosApi(accessControlState, videos, playlists, counters, subscribers, notifications);
   include StorageApi(accessControlState, storage);
   include SubscriptionsApi(accessControlState, subscriptions, subscribers, notifications, counters);
   include NotificationsApi(accessControlState, notifications, counters);
   include FeedApi(accessControlState, videos, subscriptions);
+  include PlaylistsApi(accessControlState, playlists, videos, counters);
   include ApiDocMixin();
 
   include Expose({
@@ -111,6 +115,17 @@ actor {
         .payload("viewCount", func v = v.viewCount)
         .payload("isPrivate", func v = v.isPrivate)
         .payload("createdAt", func v = v.createdAt)
+        .ownedBy("ownerId")
+        .scopedPerUser()
+        .build(),
+      playlists.toEntityManual("playlist", "Playlist", "id")
+        .sample({ id = 0; ownerId = Principal.fromText("aaaaa-aa"); title = ""; videoIds = []; isPrivate = false; createdAt = 0; updatedAt = 0 })
+        .payload("id", func p = p.id)
+        .payload("ownerId", func p = p.ownerId)
+        .payload("title", func p = p.title)
+        .payload("isPrivate", func p = p.isPrivate)
+        .payload("createdAt", func p = p.createdAt)
+        .payload("updatedAt", func p = p.updatedAt)
         .ownedBy("ownerId")
         .scopedPerUser()
         .build(),

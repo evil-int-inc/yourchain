@@ -12,6 +12,9 @@ module {
   // the last item already returned, and only items with a strictly smaller id
   // are considered.
   public func paginate<T>(items : [T], getId : T -> Nat, cursor : Common.Cursor, limit : Nat) : Common.Page<T> {
+    if (limit == 0) {
+      return { items = []; nextCursor = null };
+    };
     let filtered = if (cursor == 0) {
       items;
     } else {

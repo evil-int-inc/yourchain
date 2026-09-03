@@ -3,6 +3,11 @@ import {
   type NotificationKind as BackendNotificationKind,
   type Page_1 as BackendNotificationPage,
   type Page as BackendPage,
+  type Playlist as BackendPlaylist,
+  type Page_2 as BackendPlaylistPage,
+  type PlaylistSelection as BackendPlaylistSelection,
+  type PlaylistSummary as BackendPlaylistSummary,
+  type PlaylistView as BackendPlaylistView,
   type User as BackendUser,
   type Video as BackendVideo,
   UserRole,
@@ -21,6 +26,10 @@ export interface User extends BackendUser {}
 export interface Video extends BackendVideo {}
 export interface Notification extends BackendNotification {}
 export type NotificationKind = BackendNotificationKind;
+export interface Playlist extends BackendPlaylist {}
+export interface PlaylistSummary extends BackendPlaylistSummary {}
+export interface PlaylistView extends BackendPlaylistView {}
+export type PlaylistSelection = BackendPlaylistSelection;
 
 /** Cursor-paginated page of videos. */
 export interface Page<T> {
@@ -34,6 +43,12 @@ export interface NotificationPage {
   nextCursor?: Cursor;
 }
 
+/** Cursor-paginated page of channel playlist summaries. */
+export interface PlaylistPage {
+  items: PlaylistSummary[];
+  nextCursor?: Cursor;
+}
+
 /** Maps a backend video page to the generic Page<T> shape. */
 export function toPage(page: BackendPage): Page<Video> {
   return { items: page.items, nextCursor: page.nextCursor };
@@ -43,5 +58,10 @@ export function toPage(page: BackendPage): Page<Video> {
 export function toNotificationPage(
   page: BackendNotificationPage,
 ): NotificationPage {
+  return { items: page.items, nextCursor: page.nextCursor };
+}
+
+/** Maps a backend playlist page to the frontend Page shape. */
+export function toPlaylistPage(page: BackendPlaylistPage): PlaylistPage {
   return { items: page.items, nextCursor: page.nextCursor };
 }

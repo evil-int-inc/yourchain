@@ -11,5 +11,6 @@ module {
     var nextVideoId : Nat;
     var nextUploadSessionId : Nat;
     var nextNotificationId : Nat;
+    var nextPlaylistId : Nat;
   };
 };

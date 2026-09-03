@@ -11,13 +11,14 @@ non-obvious integration gotchas.
 ## Purpose
 
 The backend stores users (channel profiles), immutable video references,
-subscriptions, and per-user notifications. It exposes:
+playlists, subscriptions, and per-user notifications. It exposes:
 
 - Public channel profiles and a global, published-only video feed with backend
   cursor pagination.
 - Immutable object-storage uploads for videos (up to 1 GB) and optional
   thumbnails (up to 20 MB in the frontend).
 - Subscribe/unsubscribe and a subscription feed of published videos.
+- Ordered public/private playlists with caller-aware video filtering.
 - Per-user notifications for new subscribers and new videos from subscribed
   channels.
 - An OQL data layer (`schema` / `execute`) that makes the persisted data
@@ -44,7 +45,7 @@ subscriptions, and per-user notifications. It exposes:
 
 ### Video & storage
 
-- `createVideo(title : Text, description : ?Text, video : ExternalBlob, thumbnail : ?ExternalBlob, filename : Text, mimeType : Text, fileSize : Nat, isPrivate : Bool) : async Video`
+- `createVideo(title : Text, description : ?Text, video : ExternalBlob, thumbnail : ?ExternalBlob, filename : Text, mimeType : Text, fileSize : Nat, isPrivate : Bool, playlist : ?PlaylistSelection) : async CreateVideoResult`
 - `publishVideo(videoId : Nat) : async Video`
 - `deleteVideo(videoId : Nat) : async ()`
 - `getVideo(videoId : Nat) : async ?Video`
@@ -52,6 +53,15 @@ subscriptions, and per-user notifications. It exposes:
 - `getMyVideos(cursor : Nat, limit : Nat) : async Page<Video>`
 - `getStorageProviders() : async [Text]`
 - `registerStorageProvider(providerId : Text) : async ()`
+
+### Playlists
+
+- `createPlaylist(title : Text, isPrivate : Bool, initialVideoId : ?Nat) : async Playlist`
+- `addVideoToPlaylist(playlistId : Nat, videoId : Nat) : async Playlist`
+- `removeVideoFromPlaylist(playlistId : Nat, videoId : Nat) : async Playlist`
+- `getMyPlaylists() : async [Playlist]`
+- `getChannelPlaylists(userId : Principal, cursor : Nat, limit : Nat) : async Page<PlaylistSummary>`
+- `getPlaylist(playlistId : Nat) : async ?PlaylistView`
 
 ### Subscriptions
 
@@ -137,6 +147,7 @@ expires.
   the last item already returned (see Lifecycle and polling).
 - **`Page<T>`** is `{ items : [T]; nextCursor : ?Nat }`.
 - **`VideoStatus`**: `#draft`, `#processing`, `#published`, `#deleted`.
+- **`PlaylistSelection`**: `#existing Nat` or `#new { title; isPrivate }`.
 - **`NotificationKind`**: `#newSubscriber { channelId }` or
   `#newVideo { channelId; videoId }`.
 - **`UserRole`**: `#admin`, `#user`, `#guest`.
@@ -167,10 +178,25 @@ frontend.
 starts. It accepts published public videos and private videos viewed by their
 owner, and returns the updated count.
 
+### Playlist lifecycle and privacy
+
+`createVideo` can atomically add the new draft to an owned playlist or create a
+playlist containing it. The returned `playlistId` lets the frontend preserve
+playlist context after publication. A rejected playlist validation rolls back
+the whole create call. Like any non-idempotent create, do not blindly retry an
+uncertain response: a committed retry can create another video and playlist.
+
+Playlist order follows `videoIds`; duplicate additions are no-ops. Owners can
+save any published video they can view. Private playlists are returned only to
+their owners. Playlist summaries and views filter deleted, draft, and
+inaccessible private videos before calculating counts, selecting thumbnails,
+or returning media references. Non-owners do not receive empty playlists on a
+channel page.
+
 ### Pagination
 
 All paginated endpoints (`getFeed`, `getSubscriptionFeed`, `getChannelVideos`,
-`getMyVideos`, `getNotifications`) return newest-first by descending id. Pass
+`getChannelPlaylists`, `getMyVideos`, `getNotifications`) return newest-first by descending id. Pass
 `cursor = 0` for the first page, then pass the returned `nextCursor` as the
 next `cursor`. Stop polling when `nextCursor` is `null`. A `limit` of `0`
 returns an empty page with `nextCursor = null`.
@@ -193,6 +219,10 @@ returns an empty page with `nextCursor = null`.
   and `false` preserves it.
 - **`recordVideoView` is not idempotent.** Call it only for the first playback
   event in a watch-page visit.
+- **`addVideoToPlaylist` / `removeVideoFromPlaylist` are idempotent.** Adding an
+  existing member or removing a missing member returns the unchanged playlist.
+- **`createVideo` / `createPlaylist` are not idempotent.** Retry only a known
+  rejection; an uncertain response may already have committed.
 
 ## Errors, traps, and limits
 
@@ -200,14 +230,16 @@ returns an empty page with `nextCursor = null`.
   can perform this action`, `Unauthorized: Only admins can perform this
   action`, `Unauthorized: Not the video owner`, `User is not registered`,
   `Cannot subscribe to yourself`, `Username already taken`, `Video not found`,
-  `Video not available`,
+  `Video not available`, `Playlist not found`, `Playlist limit reached`,
+  `Playlist video limit reached`,
   and validation messages for invalid title, filename, MIME type, description,
   or file size.
 - **Size limits**: videos are limited to 1 GB by both the frontend and
   `createVideo`; thumbnails are limited to 20 MB and avatars to 5 MB by the
   frontend.
 - **Ownership**: `publishVideo` and `deleteVideo` require the caller to own the
-  video. Private reads expose the record only to that same owner.
+  video. Playlist mutations require the caller to own the playlist. Private
+  reads expose records only to their owners.
 
 ## Non-obvious integration gotchas
 
@@ -215,12 +247,14 @@ returns an empty page with `nextCursor = null`.
   sign-in) before any guarded call; an unregistered signed-in caller traps with
   `User is not registered` rather than receiving a graceful denial.
 - `deleteVideo` is a soft delete: the video row remains in storage with status
-  `#deleted` and is simply excluded from feeds and `getVideo` for non-owners.
+  `#deleted`, is removed from playlist membership, and is excluded from feeds
+  and `getVideo` for non-owners.
 - `getVideo` returns `null` for a private or non-published video unless the
   caller is its owner.
 - OQL `schema()` and `execute()` honour per-entity authorization: public
-  users are readable by anyone, while videos, upload sessions, subscriptions,
-  and notifications are scoped so each signed-in caller reads only owned rows.
+  users are readable by anyone, while videos, playlists, upload sessions,
+  subscriptions, and notifications are scoped so each signed-in caller reads
+  only owned rows.
 "
   };
 };

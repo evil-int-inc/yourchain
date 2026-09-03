@@ -1,9 +1,15 @@
 import { ExternalBlob } from "@/backend";
 import { ChannelPage } from "@/pages/ChannelPage";
 import { VideoStatus } from "@/types";
-import type { Video } from "@/types";
+import type { PlaylistSummary, Video } from "@/types";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import userEvent from "@testing-library/user-event";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const routerState = vi.hoisted(() => ({
+  tab: undefined as "playlists" | undefined,
+  navigate: vi.fn(),
+}));
 
 vi.mock("@caffeineai/core-infrastructure", () => ({
   useActor: () => ({ actor: {}, isFetching: false }),
@@ -27,6 +33,8 @@ vi.mock("@/hooks/useSubscription", () => ({
 
 vi.mock("@tanstack/react-router", () => ({
   useParams: () => ({ userId: "aaaaa-aa" }),
+  useSearch: () => ({ tab: routerState.tab }),
+  useNavigate: () => routerState.navigate,
   Link: ({ children }: { children: React.ReactNode }) => (
     <a href="/">{children}</a>
   ),
@@ -41,6 +49,11 @@ vi.mock("@tanstack/react-query", () => ({
 const useInfiniteVideosMock = vi.fn();
 vi.mock("@/hooks/useInfiniteVideos", () => ({
   useInfiniteVideos: (options: unknown) => useInfiniteVideosMock(options),
+}));
+
+const useInfinitePlaylistsMock = vi.fn();
+vi.mock("@/hooks/useInfinitePlaylists", () => ({
+  useInfinitePlaylists: (options: unknown) => useInfinitePlaylistsMock(options),
 }));
 
 function makeVideo(id: bigint, title: string): Video {
@@ -60,7 +73,36 @@ function makeVideo(id: bigint, title: string): Video {
   };
 }
 
+function makePlaylist(id: bigint, title: string): PlaylistSummary {
+  return {
+    id,
+    title,
+    ownerId: "aaaaa-aa" as unknown as PlaylistSummary["ownerId"],
+    videoCount: 2n,
+    firstVideoId: 2n,
+    isPrivate: false,
+    createdAt: 0n,
+    updatedAt: 1n,
+  };
+}
+
 describe("ChannelPage", () => {
+  beforeEach(() => {
+    routerState.tab = undefined;
+    routerState.navigate.mockReset();
+    useQueryMock.mockReset();
+    useInfiniteVideosMock.mockReset();
+    useInfinitePlaylistsMock.mockReset();
+    useInfinitePlaylistsMock.mockReturnValue({
+      items: [],
+      hasMore: false,
+      loadMore: vi.fn(),
+      reset: vi.fn(),
+      isLoading: false,
+      error: null,
+    });
+  });
+
   it("renders the channel header and its published videos", async () => {
     useQueryMock.mockReturnValue({
       data: {
@@ -118,5 +160,71 @@ describe("ChannelPage", () => {
     render(<ChannelPage />);
 
     expect(await screen.findByText("No videos yet")).toBeInTheDocument();
+  });
+
+  it("uses URL-backed tabs and renders channel playlists", async () => {
+    routerState.tab = "playlists";
+    useQueryMock.mockReturnValue({
+      data: { displayName: "Ada", username: "ada", createdAt: 0n },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    useInfiniteVideosMock.mockReturnValue({
+      items: [],
+      hasMore: false,
+      loadMore: vi.fn(),
+      reset: vi.fn(),
+      isLoading: false,
+      error: null,
+    });
+    useInfinitePlaylistsMock.mockReturnValue({
+      items: [makePlaylist(4n, "Road trip")],
+      hasMore: false,
+      loadMore: vi.fn(),
+      reset: vi.fn(),
+      isLoading: false,
+      error: null,
+    });
+
+    render(<ChannelPage />);
+
+    expect(
+      await screen.findByRole("tab", { name: "Playlists" }),
+    ).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByText("Road trip")).toBeInTheDocument();
+    expect(useInfiniteVideosMock.mock.calls[0][0]).toMatchObject({
+      enabled: false,
+    });
+    expect(useInfinitePlaylistsMock.mock.calls[0][0]).toMatchObject({
+      enabled: true,
+    });
+  });
+
+  it("navigates to the playlists tab", async () => {
+    const user = userEvent.setup();
+    useQueryMock.mockReturnValue({
+      data: { displayName: "Ada", username: "ada", createdAt: 0n },
+      isLoading: false,
+      isError: false,
+      refetch: vi.fn(),
+    });
+    useInfiniteVideosMock.mockReturnValue({
+      items: [],
+      hasMore: false,
+      loadMore: vi.fn(),
+      reset: vi.fn(),
+      isLoading: false,
+      error: null,
+    });
+
+    render(<ChannelPage />);
+    await user.click(screen.getByRole("tab", { name: "Playlists" }));
+
+    expect(routerState.navigate).toHaveBeenCalledWith({
+      to: "/channel/$userId",
+      params: { userId: "aaaaa-aa" },
+      search: { tab: "playlists" },
+    });
   });
 });

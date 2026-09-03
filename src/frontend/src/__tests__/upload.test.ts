@@ -40,9 +40,9 @@ function makeFile(size: number, type = "video/mp4", name = "clip.mp4"): File {
 
 describe("uploadVideo", () => {
   it("uploads immutable blobs, creates a draft, and publishes it", async () => {
-    const createVideo = vi.fn<Backend["createVideo"]>(async () =>
-      makeDraft(1n, "My clip"),
-    );
+    const createVideo = vi.fn<Backend["createVideo"]>(async () => ({
+      video: makeDraft(1n, "My clip"),
+    }));
     const publishVideo = vi.fn(async () => makePublished(1n, "My clip"));
     const actor = { createVideo, publishVideo } as unknown as Backend;
 
@@ -53,23 +53,25 @@ describe("uploadVideo", () => {
       "A description",
       null,
       false,
+      null,
     );
 
-    expect(result.status).toBe(VideoStatus.published);
+    expect(result.video.status).toBe(VideoStatus.published);
+    expect(result.playlistId).toBeUndefined();
     expect(createVideo).toHaveBeenCalledTimes(1);
     const args = createVideo.mock.calls[0];
     expect(args[0]).toBe("My clip");
     expect(args[1]).toBe("A description");
     expect(args[2]).toBeInstanceOf(ExternalBlob);
     expect(args[3]).toBeNull();
-    expect(args.slice(4)).toEqual(["clip.mp4", "video/mp4", 100n, false]);
+    expect(args.slice(4)).toEqual(["clip.mp4", "video/mp4", 100n, false, null]);
     expect(publishVideo).toHaveBeenCalledWith(1n);
   });
 
   it("forwards private visibility to the backend", async () => {
-    const createVideo = vi.fn<Backend["createVideo"]>(async () =>
-      makeDraft(2n, "Private", true),
-    );
+    const createVideo = vi.fn<Backend["createVideo"]>(async () => ({
+      video: makeDraft(2n, "Private", true),
+    }));
     const actor = {
       createVideo,
       publishVideo: vi.fn(async () => makePublished(2n, "Private", true)),
@@ -82,15 +84,16 @@ describe("uploadVideo", () => {
       null,
       null,
       true,
+      null,
     );
 
     expect(createVideo.mock.calls[0][7]).toBe(true);
   });
 
   it("uploads an optional thumbnail as a preview storage reference", async () => {
-    const createVideo = vi.fn<Backend["createVideo"]>(async () =>
-      makeDraft(3n, "With preview"),
-    );
+    const createVideo = vi.fn<Backend["createVideo"]>(async () => ({
+      video: makeDraft(3n, "With preview"),
+    }));
     const actor = {
       createVideo,
       publishVideo: vi.fn(async () => makePublished(3n, "With preview")),
@@ -103,6 +106,7 @@ describe("uploadVideo", () => {
       null,
       makeFile(50, "image/png", "preview.png"),
       false,
+      null,
     );
 
     expect(createVideo.mock.calls[0][3]).toBeInstanceOf(ExternalBlob);
@@ -116,7 +120,15 @@ describe("uploadVideo", () => {
 
     const oversized = makeFile(1_073_741_825);
     await expect(
-      uploadService.uploadVideo(actor, oversized, "Too big", null, null, false),
+      uploadService.uploadVideo(
+        actor,
+        oversized,
+        "Too big",
+        null,
+        null,
+        false,
+        null,
+      ),
     ).rejects.toThrow(/exceeds the maximum size/);
 
     expect(actor.createVideo).not.toHaveBeenCalled();
@@ -124,7 +136,7 @@ describe("uploadVideo", () => {
 
   it("reports object-storage progress", async () => {
     const actor = {
-      createVideo: vi.fn(async () => makeDraft(1n, "My clip")),
+      createVideo: vi.fn(async () => ({ video: makeDraft(1n, "My clip") })),
       publishVideo: vi.fn(async () => makePublished(1n, "My clip")),
     } as unknown as Backend;
     const onProgress = vi.fn();
@@ -136,9 +148,35 @@ describe("uploadVideo", () => {
       null,
       null,
       false,
+      null,
       onProgress,
     );
 
     expect(onProgress).toHaveBeenLastCalledWith(100);
+  });
+
+  it("forwards a playlist selection and returns its id", async () => {
+    const playlist = { __kind__: "existing" as const, existing: 9n };
+    const createVideo = vi.fn<Backend["createVideo"]>(async () => ({
+      video: makeDraft(4n, "Queued"),
+      playlistId: 9n,
+    }));
+    const actor = {
+      createVideo,
+      publishVideo: vi.fn(async () => makePublished(4n, "Queued")),
+    } as unknown as Backend;
+
+    const result = await uploadService.uploadVideo(
+      actor,
+      makeFile(100),
+      "Queued",
+      null,
+      null,
+      false,
+      playlist,
+    );
+
+    expect(createVideo.mock.calls[0][8]).toEqual(playlist);
+    expect(result.playlistId).toBe(9n);
   });
 });

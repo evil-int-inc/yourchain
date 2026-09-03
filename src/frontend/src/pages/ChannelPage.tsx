@@ -1,5 +1,6 @@
 import { createActor } from "@/backend";
 import { InfiniteScrollSentinel } from "@/components/common/InfiniteScrollSentinel";
+import { PlaylistGrid } from "@/components/playlist/PlaylistGrid";
 import { SubscribeButton } from "@/components/subscription/SubscribeButton";
 import { Avatar } from "@/components/ui/Avatar";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -9,15 +10,17 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { VideoGrid } from "@/components/video/VideoGrid";
 import { config } from "@/config";
 import { useAuth } from "@/hooks/useAuth";
+import { useInfinitePlaylists } from "@/hooks/useInfinitePlaylists";
 import { useInfiniteVideos } from "@/hooks/useInfiniteVideos";
+import { playlistService } from "@/services/playlists";
 import { userService } from "@/services/users";
 import { videoService } from "@/services/videos";
 import { formatDate, timestampToDate } from "@/utils/format";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { Principal } from "@icp-sdk/core/principal";
 import { useQuery } from "@tanstack/react-query";
-import { useParams } from "@tanstack/react-router";
-import { Clapperboard } from "lucide-react";
+import { useNavigate, useParams, useSearch } from "@tanstack/react-router";
+import { Clapperboard, ListVideo } from "lucide-react";
 import { useCallback } from "react";
 
 /** Layout-matched skeleton for the channel header while the profile loads. */
@@ -68,6 +71,28 @@ function ChannelVideosSkeleton() {
   );
 }
 
+function ChannelPlaylistsSkeleton() {
+  return (
+    <div
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      aria-hidden="true"
+    >
+      {CHANNEL_SKELETON_KEYS.slice(0, 6).map((key) => (
+        <div
+          key={`playlist-${key}`}
+          className="overflow-hidden rounded-xl border border-border bg-card"
+        >
+          <Skeleton className="aspect-video w-full rounded-none" />
+          <div className="space-y-2 p-3">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 /**
  * Public channel page at /channel/$userId. Shows the channel profile header
  * (avatar, name, username, bio, member-since date, subscriber count) with a
@@ -76,6 +101,9 @@ function ChannelVideosSkeleton() {
  */
 export function ChannelPage() {
   const { userId } = useParams({ from: "/channel/$userId" });
+  const { tab } = useSearch({ from: "/channel/$userId" });
+  const navigate = useNavigate();
+  const activeTab = tab === "playlists" ? "playlists" : "videos";
   const channelPrincipal = Principal.fromText(userId);
   const { actor, isFetching } = useActor(createActor);
   const { principal } = useAuth();
@@ -112,11 +140,38 @@ export function ChannelPage() {
     useInfiniteVideos({
       fetcher,
       pageSize: config.channelPageSize,
-      enabled: !!actor && !isFetching,
+      enabled: activeTab === "videos" && !!actor && !isFetching,
     });
+
+  const playlistFetcher = useCallback(
+    (cursor: bigint, limit: bigint) => {
+      if (!actor) return Promise.resolve({ items: [] });
+      return playlistService.getChannelPlaylists(
+        actor,
+        channelPrincipal,
+        cursor,
+        limit,
+      );
+    },
+    [actor, channelPrincipal],
+  );
+
+  const playlists = useInfinitePlaylists({
+    fetcher: playlistFetcher,
+    pageSize: config.playlistPageSize,
+    enabled: activeTab === "playlists" && !!actor && !isFetching,
+  });
 
   const initialLoading = isLoading && items.length === 0 && !error;
   const memberSince = timestampToDate(channel?.createdAt ?? 0n);
+
+  const selectTab = (nextTab: "videos" | "playlists") => {
+    void navigate({
+      to: "/channel/$userId",
+      params: { userId },
+      search: nextTab === "playlists" ? { tab: "playlists" } : {},
+    });
+  };
 
   return (
     <section
@@ -179,42 +234,124 @@ export function ChannelPage() {
         </header>
       )}
 
-      <div className="flex flex-col gap-4">
-        <h2 className="font-display text-lg font-semibold text-foreground">
+      <div
+        role="tablist"
+        aria-label="Channel content"
+        className="tabs tabs-border border-b border-border"
+      >
+        <button
+          type="button"
+          role="tab"
+          id="channel-videos-tab"
+          aria-controls="channel-videos-panel"
+          aria-selected={activeTab === "videos"}
+          className={`tab gap-2 ${activeTab === "videos" ? "tab-active" : ""}`}
+          onClick={() => selectTab("videos")}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowRight" || event.key === "End") {
+              event.preventDefault();
+              selectTab("playlists");
+            }
+          }}
+        >
+          <Clapperboard className="size-4" aria-hidden="true" />
           Videos
-        </h2>
-
-        {error && items.length === 0 ? (
-          <ErrorState
-            title="Couldn't load this channel's videos"
-            message={error.message}
-            onRetry={reset}
-          />
-        ) : initialLoading ? (
-          <ChannelVideosSkeleton />
-        ) : items.length === 0 ? (
-          <EmptyState
-            icon={<Clapperboard className="size-7" aria-hidden="true" />}
-            title="No videos yet"
-            description="This channel hasn't published any videos yet. Check back soon."
-          />
-        ) : (
-          <>
-            <VideoGrid videos={items} channelName={channel?.displayName} />
-
-            <InfiniteScrollSentinel
-              onIntersect={() => void loadMore()}
-              disabled={!hasMore || isLoading}
-            />
-
-            {isLoading && items.length > 0 ? (
-              <div className="flex justify-center py-4">
-                <Loader label="Loading more videos" />
-              </div>
-            ) : null}
-          </>
-        )}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          id="channel-playlists-tab"
+          aria-controls="channel-playlists-panel"
+          aria-selected={activeTab === "playlists"}
+          className={`tab gap-2 ${activeTab === "playlists" ? "tab-active" : ""}`}
+          onClick={() => selectTab("playlists")}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowLeft" || event.key === "Home") {
+              event.preventDefault();
+              selectTab("videos");
+            }
+          }}
+        >
+          <ListVideo className="size-4" aria-hidden="true" />
+          Playlists
+        </button>
       </div>
+
+      {activeTab === "videos" ? (
+        <div
+          id="channel-videos-panel"
+          role="tabpanel"
+          aria-labelledby="channel-videos-tab"
+          className="flex flex-col gap-4"
+        >
+          {error && items.length === 0 ? (
+            <ErrorState
+              title="Couldn't load this channel's videos"
+              message={error.message}
+              onRetry={reset}
+            />
+          ) : initialLoading ? (
+            <ChannelVideosSkeleton />
+          ) : items.length === 0 ? (
+            <EmptyState
+              icon={<Clapperboard className="size-7" aria-hidden="true" />}
+              title="No videos yet"
+              description="This channel hasn't published any videos yet. Check back soon."
+            />
+          ) : (
+            <>
+              <VideoGrid videos={items} channelName={channel?.displayName} />
+
+              <InfiniteScrollSentinel
+                onIntersect={() => void loadMore()}
+                disabled={!hasMore || isLoading}
+              />
+
+              {isLoading && items.length > 0 ? (
+                <div className="flex justify-center py-4">
+                  <Loader label="Loading more videos" />
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      ) : (
+        <div
+          id="channel-playlists-panel"
+          role="tabpanel"
+          aria-labelledby="channel-playlists-tab"
+          className="flex flex-col gap-4"
+        >
+          {playlists.error && playlists.items.length === 0 ? (
+            <ErrorState
+              title="Couldn't load this channel's playlists"
+              message={playlists.error.message}
+              onRetry={playlists.reset}
+            />
+          ) : playlists.isLoading && playlists.items.length === 0 ? (
+            <ChannelPlaylistsSkeleton />
+          ) : playlists.items.length === 0 ? (
+            <EmptyState
+              icon={<ListVideo className="size-7" aria-hidden="true" />}
+              title="No playlists yet"
+              description="This channel hasn't shared any playlists yet."
+            />
+          ) : (
+            <>
+              <PlaylistGrid playlists={playlists.items} />
+              <InfiniteScrollSentinel
+                onIntersect={() => void playlists.loadMore()}
+                disabled={!playlists.hasMore || playlists.isLoading}
+              />
+              {playlists.isLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader label="Loading more playlists" />
+                </div>
+              ) : null}
+            </>
+          )}
+        </div>
+      )}
     </section>
   );
 }

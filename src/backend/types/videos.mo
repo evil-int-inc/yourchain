@@ -26,6 +26,16 @@ module {
     status : VideoStatus;
   };
 
+  public type PlaylistSelection = {
+    #existing : Nat;
+    #new : { title : Text; isPrivate : Bool };
+  };
+
+  public type CreateVideoResult = {
+    video : Video;
+    playlistId : ?Nat;
+  };
+
   public type UploadKind = {
     #video;
     #thumbnail;

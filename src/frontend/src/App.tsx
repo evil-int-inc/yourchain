@@ -55,12 +55,39 @@ const uploadRoute = createRoute({
 const watchRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/watch/$videoId",
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { list?: string; index?: number } => {
+    const list =
+      typeof search.list === "string" && /^\d+$/.test(search.list)
+        ? search.list
+        : undefined;
+    const parsedIndex =
+      typeof search.index === "number"
+        ? search.index
+        : typeof search.index === "string"
+          ? Number(search.index)
+          : undefined;
+    const index =
+      parsedIndex !== undefined &&
+      Number.isSafeInteger(parsedIndex) &&
+      parsedIndex > 0
+        ? parsedIndex
+        : undefined;
+    return { ...(list ? { list } : {}), ...(index ? { index } : {}) };
+  },
   component: WatchPage,
 });
 
 const channelRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/channel/$userId",
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { tab?: "videos" | "playlists" } => {
+    const tab = search.tab === "playlists" ? "playlists" : undefined;
+    return tab ? { tab } : {};
+  },
   component: ChannelPage,
 });
 

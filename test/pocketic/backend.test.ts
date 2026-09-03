@@ -1,8 +1,8 @@
-import { type Actor, createIdentity, PocketIc } from "@dfinity/pic";
+import { type Actor, PocketIc, createIdentity } from "@dfinity/pic";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { idlFactory } from "../../src/frontend/src/declarations/backend.did.js";
 import type { _SERVICE } from "../../src/frontend/src/declarations/backend.did";
+import { idlFactory } from "../../src/frontend/src/declarations/backend.did.js";
 
 const PIC_URL = process.env.POCKET_IC_URL ?? "";
 const BACKEND_WASM = process.env.BACKEND_WASM ?? "";
@@ -23,24 +23,29 @@ async function publishVideo(
   title: string,
   size: number,
   isPrivate = false,
+  thumbnail: [] | [Uint8Array] = [],
 ) {
   actor.setPrincipal(owner);
   const draft = await actor.createVideo(
     title,
     [],
     new Uint8Array([1, 2, 3]),
-    [],
+    thumbnail,
     "clip.mp4",
     "video/mp4",
     BigInt(size),
     isPrivate,
+    [],
   );
-  return actor.publishVideo(draft.id);
+  return actor.publishVideo(draft.video.id);
 }
 
 beforeAll(async () => {
   pic = await PocketIc.create(PIC_URL);
-  ({ actor } = await pic.setupCanister<_SERVICE>({ idlFactory, wasm: BACKEND_WASM }));
+  ({ actor } = await pic.setupCanister<_SERVICE>({
+    idlFactory,
+    wasm: BACKEND_WASM,
+  }));
 
   // Register both callers so role-guarded methods do not trap with
   // "User is not registered". alice (first) becomes admin, bob becomes user.
@@ -76,22 +81,14 @@ describe("YourChain backend", () => {
     );
     expect(created.avatar).toEqual([new Uint8Array([9, 8, 7])]);
 
-    const retained = await actor.saveProfile(
-      "Alice",
-      "alice",
-      [],
-      false,
-      ["Updated"],
-    );
+    const retained = await actor.saveProfile("Alice", "alice", [], false, [
+      "Updated",
+    ]);
     expect(retained.avatar).toEqual([new Uint8Array([9, 8, 7])]);
 
-    const removed = await actor.saveProfile(
-      "Alice",
-      "alice",
-      [],
-      true,
-      ["Updated"],
-    );
+    const removed = await actor.saveProfile("Alice", "alice", [], true, [
+      "Updated",
+    ]);
     expect(removed.avatar).toEqual([]);
   });
 
@@ -107,15 +104,17 @@ describe("YourChain backend", () => {
       "video/mp4",
       100n,
       false,
+      [],
     );
-    expect(draft.status).toEqual({ draft: null });
-    expect(draft.title).toBe("My clip");
-    expect(draft.ownerId).toEqual(alice);
-    expect(draft.filename).toBe("clip.mp4");
-    expect(draft.viewCount).toBe(0n);
-    expect(draft.isPrivate).toBe(false);
+    expect(draft.playlistId).toEqual([]);
+    expect(draft.video.status).toEqual({ draft: null });
+    expect(draft.video.title).toBe("My clip");
+    expect(draft.video.ownerId).toEqual(alice);
+    expect(draft.video.filename).toBe("clip.mp4");
+    expect(draft.video.viewCount).toBe(0n);
+    expect(draft.video.isPrivate).toBe(false);
 
-    const published = await actor.publishVideo(draft.id);
+    const published = await actor.publishVideo(draft.video.id);
     expect(published.status).toEqual({ published: null });
     // publishVideo records a publishedAt timestamp.
     expect(published.publishedAt.length).toBe(1);
@@ -123,17 +122,222 @@ describe("YourChain backend", () => {
     // Only published videos appear in the global feed.
     const feed = await actor.getFeed(0n, 10n);
     expect(feed.items).toContainEqual(
-      expect.objectContaining({ id: draft.id, title: "My clip", status: { published: null } }),
+      expect.objectContaining({
+        id: draft.video.id,
+        title: "My clip",
+        status: { published: null },
+      }),
     );
 
     // The channel page lists the owner's published videos.
     const channel = await actor.getChannelVideos(alice, 0n, 10n);
     expect(channel.items).toContainEqual(
-      expect.objectContaining({ id: draft.id, ownerId: alice }),
+      expect.objectContaining({ id: draft.video.id, ownerId: alice }),
     );
 
-    expect(await actor.recordVideoView(draft.id)).toBe(1n);
-    expect((await actor.getVideo(draft.id))[0]?.viewCount).toBe(1n);
+    expect(await actor.recordVideoView(draft.video.id)).toBe(1n);
+    expect((await actor.getVideo(draft.video.id))[0]?.viewCount).toBe(1n);
+  });
+
+  it("associates a new upload with a newly created playlist atomically", async () => {
+    actor.setPrincipal(alice);
+    const draft = await actor.createVideo(
+      "Playlist upload",
+      [],
+      new Uint8Array([7, 8, 9]),
+      [new Uint8Array([42])],
+      "playlist-clip.mp4",
+      "video/mp4",
+      75n,
+      false,
+      [{ new: { title: "Upload queue", isPrivate: false } }],
+    );
+
+    expect(draft.playlistId).toHaveLength(1);
+    const playlistId = draft.playlistId[0];
+    expect(playlistId).toBeDefined();
+
+    const storedPlaylist = (await actor.getMyPlaylists()).find(
+      (playlist) => playlist.id === playlistId,
+    );
+    expect(storedPlaylist).toEqual(
+      expect.objectContaining({
+        id: playlistId,
+        title: "Upload queue",
+        videoIds: [draft.video.id],
+      }),
+    );
+
+    // Playlist reads never expose a draft, even to its owner.
+    const draftView = (await actor.getPlaylist(playlistId!))[0];
+    expect(draftView?.videos).toEqual([]);
+    expect(draftView?.playlist.videoCount).toBe(0n);
+
+    await actor.publishVideo(draft.video.id);
+    const secondDraft = await actor.createVideo(
+      "Second playlist upload",
+      [],
+      new Uint8Array([10, 11, 12]),
+      [],
+      "second-playlist-clip.mp4",
+      "video/mp4",
+      76n,
+      false,
+      [{ existing: playlistId! }],
+    );
+    expect(secondDraft.playlistId).toEqual([playlistId]);
+
+    const playlistWithDraft = (await actor.getMyPlaylists()).find(
+      (item) => item.id === playlistId,
+    );
+    expect(playlistWithDraft?.videoIds).toEqual([
+      draft.video.id,
+      secondDraft.video.id,
+    ]);
+    expect(
+      (await actor.getPlaylist(playlistId!))[0]?.videos.map(
+        (video) => video.id,
+      ),
+    ).toEqual([draft.video.id]);
+
+    await actor.publishVideo(secondDraft.video.id);
+    const view = (await actor.getPlaylist(playlistId!))[0];
+    expect(view?.videos.map((video) => video.id)).toEqual([
+      draft.video.id,
+      secondDraft.video.id,
+    ]);
+  });
+
+  it("keeps playlist order, mutations, privacy, and summaries caller-safe", async () => {
+    const privateVideo = await publishVideo(alice, "Private opener", 30, true, [
+      new Uint8Array([10]),
+    ]);
+    const firstPublicVideo = await publishVideo(
+      alice,
+      "First public",
+      31,
+      false,
+      [new Uint8Array([20])],
+    );
+    const secondPublicVideo = await publishVideo(
+      alice,
+      "Second public",
+      32,
+      false,
+      [new Uint8Array([30])],
+    );
+
+    actor.setPrincipal(alice);
+    const playlist = await actor.createPlaylist("Ordered mix", false, [
+      privateVideo.id,
+    ]);
+    await actor.addVideoToPlaylist(playlist.id, firstPublicVideo.id);
+    const afterSecond = await actor.addVideoToPlaylist(
+      playlist.id,
+      secondPublicVideo.id,
+    );
+    expect(afterSecond.videoIds).toEqual([
+      privateVideo.id,
+      firstPublicVideo.id,
+      secondPublicVideo.id,
+    ]);
+
+    // Adding the same video is deliberately idempotent and does not alter order.
+    const afterDuplicate = await actor.addVideoToPlaylist(
+      playlist.id,
+      firstPublicVideo.id,
+    );
+    expect(afterDuplicate.videoIds).toEqual(afterSecond.videoIds);
+
+    const ownerView = (await actor.getPlaylist(playlist.id))[0];
+    expect(ownerView?.videos.map((video) => video.id)).toEqual(
+      afterSecond.videoIds,
+    );
+    expect(ownerView?.playlist).toEqual(
+      expect.objectContaining({
+        videoCount: 3n,
+        firstVideoId: [privateVideo.id],
+        thumbnail: [new Uint8Array([10])],
+      }),
+    );
+
+    const privatePlaylist = await actor.createPlaylist("Owner only", true, [
+      firstPublicVideo.id,
+    ]);
+    const mine = await actor.getMyPlaylists();
+    expect(mine.map(({ id }) => id)).toEqual(
+      expect.arrayContaining([playlist.id, privatePlaylist.id]),
+    );
+
+    actor.setPrincipal(bob);
+    await expect(
+      actor.addVideoToPlaylist(playlist.id, firstPublicVideo.id),
+    ).rejects.toThrow(/Playlist not found/);
+    await expect(
+      actor.removeVideoFromPlaylist(playlist.id, firstPublicVideo.id),
+    ).rejects.toThrow(/Playlist not found/);
+
+    // A public playlist remains readable, but inaccessible videos are removed
+    // server-side while preserving the relative order of visible entries.
+    const publicView = (await actor.getPlaylist(playlist.id))[0];
+    expect(publicView?.videos.map((video) => video.id)).toEqual([
+      firstPublicVideo.id,
+      secondPublicVideo.id,
+    ]);
+    expect(publicView?.playlist).toEqual(
+      expect.objectContaining({
+        videoCount: 2n,
+        firstVideoId: [firstPublicVideo.id],
+        thumbnail: [new Uint8Array([20])],
+      }),
+    );
+
+    const publicChannelPlaylists = await actor.getChannelPlaylists(
+      alice,
+      0n,
+      100n,
+    );
+    expect(publicChannelPlaylists.items).toContainEqual(
+      expect.objectContaining({
+        id: playlist.id,
+        videoCount: 2n,
+        firstVideoId: [firstPublicVideo.id],
+        thumbnail: [new Uint8Array([20])],
+      }),
+    );
+    expect(
+      publicChannelPlaylists.items.some(({ id }) => id === privatePlaylist.id),
+    ).toBe(false);
+    expect(await actor.getPlaylist(privatePlaylist.id)).toEqual([]);
+
+    actor.setPrincipal(alice);
+    const ownerChannelPlaylists = await actor.getChannelPlaylists(
+      alice,
+      0n,
+      100n,
+    );
+    expect(ownerChannelPlaylists.items).toContainEqual(
+      expect.objectContaining({ id: privatePlaylist.id, videoCount: 1n }),
+    );
+
+    await actor.deleteVideo(secondPublicVideo.id);
+    const afterDelete = (await actor.getMyPlaylists()).find(
+      ({ id }) => id === playlist.id,
+    );
+    expect(afterDelete?.videoIds).toEqual([
+      privateVideo.id,
+      firstPublicVideo.id,
+    ]);
+  });
+
+  it("normalizes playlist names and rejects whitespace-only titles", async () => {
+    actor.setPrincipal(alice);
+    await expect(actor.createPlaylist(" \n\t ", false, [])).rejects.toThrow(
+      /Playlist title must be between 1 and 100 characters/,
+    );
+
+    const playlist = await actor.createPlaylist("  Clean title  ", false, []);
+    expect(playlist.title).toBe("Clean title");
   });
 
   it("supports subscribe/unsubscribe and rejects self-subscription", async () => {
@@ -156,7 +360,9 @@ describe("YourChain backend", () => {
     expect(await actor.getSubscribedChannels()).not.toContainEqual(alice);
 
     // A user cannot subscribe to themselves.
-    await expect(actor.subscribe(bob)).rejects.toThrow(/Cannot subscribe to yourself/);
+    await expect(actor.subscribe(bob)).rejects.toThrow(
+      /Cannot subscribe to yourself/,
+    );
   });
 
   it("keeps private videos out of every public read and exposes them to the owner", async () => {
@@ -167,15 +373,23 @@ describe("YourChain backend", () => {
 
     // Even the owner does not receive private videos through the global feed.
     const ownerFeed = await actor.getFeed(0n, 100n);
-    expect(ownerFeed.items.some((video) => video.id === privateVideo.id)).toBe(false);
+    expect(ownerFeed.items.some((video) => video.id === privateVideo.id)).toBe(
+      false,
+    );
 
     actor.setPrincipal(bob);
     const feed = await actor.getFeed(0n, 100n);
     const subscriptionFeed = await actor.getSubscriptionFeed(0n, 100n);
     const channel = await actor.getChannelVideos(alice, 0n, 100n);
-    expect(feed.items.some((video) => video.id === privateVideo.id)).toBe(false);
-    expect(subscriptionFeed.items.some((video) => video.id === privateVideo.id)).toBe(false);
-    expect(channel.items.some((video) => video.id === privateVideo.id)).toBe(false);
+    expect(feed.items.some((video) => video.id === privateVideo.id)).toBe(
+      false,
+    );
+    expect(
+      subscriptionFeed.items.some((video) => video.id === privateVideo.id),
+    ).toBe(false);
+    expect(channel.items.some((video) => video.id === privateVideo.id)).toBe(
+      false,
+    );
     expect(await actor.getVideo(privateVideo.id)).toEqual([]);
     await expect(actor.recordVideoView(privateVideo.id)).rejects.toThrow(
       /Video not available/,
@@ -191,7 +405,9 @@ describe("YourChain backend", () => {
     ).toBe(false);
 
     actor.setPrincipal(alice);
-    expect((await actor.getVideo(privateVideo.id))[0]?.id).toBe(privateVideo.id);
+    expect((await actor.getVideo(privateVideo.id))[0]?.id).toBe(
+      privateVideo.id,
+    );
     expect(await actor.recordVideoView(privateVideo.id)).toBe(1n);
     const ownerChannel = await actor.getChannelVideos(alice, 0n, 100n);
     expect(ownerChannel.items).toContainEqual(

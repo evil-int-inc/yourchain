@@ -1,6 +1,8 @@
+import { PlaylistPicker } from "@/components/playlist/PlaylistPicker";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { config } from "@/config";
+import type { Playlist, PlaylistSelection } from "@/types";
 import { formatBytes } from "@/utils/format";
 import { Clapperboard, ImagePlus, UploadCloud, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -10,6 +12,7 @@ export interface UploadFormValues {
   title: string;
   description?: string;
   isPrivate: boolean;
+  playlist: PlaylistSelection | null;
   /** Optional thumbnail image uploaded to immutable object storage. */
   thumbnail?: File | null;
 }
@@ -17,12 +20,17 @@ export interface UploadFormValues {
 interface UploadFormProps {
   onSubmit: (values: UploadFormValues) => void;
   disabled?: boolean;
+  playlists?: Playlist[];
+  playlistsLoading?: boolean;
+  playlistsError?: boolean;
+  onRetryPlaylists?: () => void;
 }
 
 interface FieldErrors {
   title?: string;
   video?: string;
   thumbnail?: string;
+  playlist?: string;
 }
 
 function validateVideo(file: File): string | undefined {
@@ -53,12 +61,20 @@ function validateThumbnail(file: File): string | undefined {
   return undefined;
 }
 
-export function UploadForm({ onSubmit, disabled }: UploadFormProps) {
+export function UploadForm({
+  onSubmit,
+  disabled,
+  playlists = [],
+  playlistsLoading = false,
+  playlistsError = false,
+  onRetryPlaylists,
+}: UploadFormProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isPrivate, setIsPrivate] = useState(false);
+  const [playlist, setPlaylist] = useState<PlaylistSelection | null>(null);
   const [videoPreviewUrl, setVideoPreviewUrl] = useState<string | null>(null);
   const [errors, setErrors] = useState<FieldErrors>({});
   const videoInputRef = useRef<HTMLInputElement>(null);
@@ -93,13 +109,32 @@ export function UploadForm({ onSubmit, disabled }: UploadFormProps) {
     if (!videoFile) nextErrors.video = "Choose a video to upload.";
     else nextErrors.video = validateVideo(videoFile);
     if (thumbnailFile) nextErrors.thumbnail = validateThumbnail(thumbnailFile);
+    if (playlist?.__kind__ === "new" && !playlist.new.title.trim()) {
+      nextErrors.playlist = "Playlist name is required.";
+    }
     setErrors(nextErrors);
-    if (nextErrors.title || nextErrors.video || nextErrors.thumbnail) return;
+    if (
+      nextErrors.title ||
+      nextErrors.video ||
+      nextErrors.thumbnail ||
+      nextErrors.playlist
+    )
+      return;
     onSubmit({
       file: videoFile as File,
       title: title.trim(),
       description: description.trim() || undefined,
       isPrivate,
+      playlist:
+        playlist?.__kind__ === "new"
+          ? {
+              __kind__: "new",
+              new: {
+                ...playlist.new,
+                title: playlist.new.title.trim(),
+              },
+            }
+          : playlist,
       thumbnail: thumbnailFile,
     });
   };
@@ -250,6 +285,22 @@ export function UploadForm({ onSubmit, disabled }: UploadFormProps) {
           </span>
         </span>
       </label>
+
+      <PlaylistPicker
+        playlists={playlists}
+        value={playlist}
+        error={errors.playlist}
+        isLoading={playlistsLoading}
+        loadError={playlistsError}
+        onRetry={onRetryPlaylists}
+        disabled={disabled}
+        onChange={(nextPlaylist) => {
+          setPlaylist(nextPlaylist);
+          if (errors.playlist) {
+            setErrors((prev) => ({ ...prev, playlist: undefined }));
+          }
+        }}
+      />
 
       {/* Optional thumbnail */}
       <div>

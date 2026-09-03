@@ -1,6 +1,6 @@
 import { createActor } from "@/backend";
 import { uploadService } from "@/services/upload";
-import type { Video } from "@/types";
+import type { PlaylistSelection, Video } from "@/types";
 import { useActor } from "@caffeineai/core-infrastructure";
 import { useCallback, useRef, useState } from "react";
 
@@ -10,6 +10,7 @@ export interface UploadVideoInput {
   title: string;
   description?: string;
   isPrivate: boolean;
+  playlist: PlaylistSelection | null;
   /** Optional thumbnail image uploaded to immutable object storage. */
   thumbnail?: File | null;
 }
@@ -30,7 +31,7 @@ export function useVideoUpload() {
     async (
       input: UploadVideoInput,
       onProgress?: (percentage: number) => void,
-    ): Promise<Video> => {
+    ): Promise<{ video: Video; playlistId?: bigint }> => {
       if (!actor) throw new Error("Backend is not ready");
       if (abortRef.current) throw new Error("Upload cancelled");
 
@@ -47,6 +48,7 @@ export function useVideoUpload() {
           input.description ?? null,
           input.thumbnail ?? null,
           input.isPrivate,
+          input.playlist,
           (percentage) => {
             if (abortRef.current) return;
             setProgress(percentage);

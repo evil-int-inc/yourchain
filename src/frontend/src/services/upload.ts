@@ -1,4 +1,9 @@
-import { type Backend, ExternalBlob } from "@/backend";
+import {
+  type Backend,
+  type CreateVideoResult,
+  ExternalBlob,
+  type PlaylistSelection,
+} from "@/backend";
 import { config } from "@/config";
 import { videoService } from "@/services/videos";
 import type { Video } from "@/types";
@@ -16,7 +21,8 @@ export class UploadService {
     mimeType: string,
     fileSize: bigint,
     isPrivate: boolean,
-  ): Promise<Video> {
+    playlist: PlaylistSelection | null,
+  ): Promise<CreateVideoResult> {
     return actor.createVideo(
       title,
       description,
@@ -26,6 +32,7 @@ export class UploadService {
       mimeType,
       fileSize,
       isPrivate,
+      playlist,
     );
   }
 
@@ -49,8 +56,9 @@ export class UploadService {
     description: string | null,
     thumbnail: File | null,
     isPrivate: boolean,
+    playlist: PlaylistSelection | null,
     onProgress?: (percentage: number) => void,
-  ): Promise<Video> {
+  ): Promise<{ video: Video; playlistId?: bigint }> {
     if (file.size === 0) {
       throw new Error("Choose a video that is not empty");
     }
@@ -103,9 +111,11 @@ export class UploadService {
       file.type,
       BigInt(file.size),
       isPrivate,
+      playlist,
     );
 
-    return videoService.publishVideo(actor, draft.id);
+    const published = await videoService.publishVideo(actor, draft.video.id);
+    return { video: published, playlistId: draft.playlistId };
   }
 }
 

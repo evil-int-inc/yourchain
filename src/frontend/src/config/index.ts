@@ -24,6 +24,9 @@ export const config = {
   /** Number of channel videos requested per page. */
   channelPageSize: 12,
 
+  /** Number of channel playlists requested per page. */
+  playlistPageSize: 12,
+
   /** Accepted video MIME types for upload. */
   acceptedVideoMimeTypes: ["video/mp4", "video/webm", "video/quicktime"],
 
@@ -35,6 +38,9 @@ export const config = {
 
   /** Maximum length of a video title. */
   maxTitleLength: 100,
+
+  /** Maximum length of a playlist title. */
+  maxPlaylistTitleLength: 100,
 
   /** Maximum length of a video description. */
   maxDescriptionLength: 5000,

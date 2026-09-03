@@ -8,12 +8,19 @@ interface VideoPlayerProps {
   poster?: string;
   /** Called the first time playback starts on the watch page. */
   onPlay?: () => void;
+  /** Called when playback reaches the end of the video. */
+  onEnded?: () => void;
 }
 
 /**
  * HTML5 player backed by the immutable object's direct preview URL.
  */
-export function VideoPlayer({ video, poster, onPlay }: VideoPlayerProps) {
+export function VideoPlayer({
+  video,
+  poster,
+  onPlay,
+  onEnded,
+}: VideoPlayerProps) {
   const src = video.video.getDirectURL();
   const posterUrl = poster ?? video.thumbnail?.getDirectURL();
   const [isReady, setIsReady] = useState(false);
@@ -43,6 +50,7 @@ export function VideoPlayer({ video, poster, onPlay }: VideoPlayerProps) {
         onLoadedData={() => setIsReady(true)}
         onError={() => setIsReady(true)}
         onPlay={onPlay}
+        onEnded={onEnded}
       >
         <track kind="captions" label="Captions" />
         Your browser does not support the video tag.
