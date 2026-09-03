@@ -43189,10 +43189,10 @@ function Header({ onOpenSidebar }) {
               "aria-label": "YourChain home",
               className: "flex shrink-0 items-center gap-2 lg:hidden",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex size-8 items-center justify-center rounded-lg bg-info text-info-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { className: "size-4 fill-current", "aria-hidden": "true" }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex size-8 items-center justify-center rounded-lg bg-brand text-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { className: "size-4 fill-current", "aria-hidden": "true" }) }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "hidden text-lg font-bold tracking-tight min-[420px]:inline sm:hidden", children: [
                   "Your",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-info", children: "Chain" })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-brand", children: "Chain" })
                 ] })
               ]
             }
@@ -43405,10 +43405,10 @@ function Sidebar({ onNavigate }) {
               "aria-label": "YourChain home",
               className: "flex items-center gap-2",
               children: [
-                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex size-9 items-center justify-center rounded-lg bg-info text-info-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { className: "size-5 fill-current", "aria-hidden": "true" }) }),
+                /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex size-9 items-center justify-center rounded-lg bg-brand text-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Play, { className: "size-5 fill-current", "aria-hidden": "true" }) }),
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xl font-bold tracking-tight", children: [
                   "Your",
-                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-info", children: "Chain" })
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-brand", children: "Chain" })
                 ] })
               ]
             }
@@ -43848,12 +43848,24 @@ function Skeleton({
 }
 const Aura = ({
   children,
+  className,
   gold = false,
   rainbow = false,
   disabled = false
 }) => {
   if (disabled) return children;
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: cn("aura", gold && "aura-gold", rainbow && "aura-rainbow"), children });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(
+    "div",
+    {
+      className: cn(
+        "aura",
+        gold && "aura-gold",
+        rainbow && "aura-rainbow",
+        className
+      ),
+      children
+    }
+  );
 };
 class MediaActionService {
   download(url, filename) {
@@ -44055,11 +44067,11 @@ function VideoCard({
   const publishedDate = timestampToDate(video.publishedAt ?? video.createdAt);
   const relativeTime = timeAgo(publishedDate);
   const views = formatCount(viewCount ?? video.viewCount);
-  return /* @__PURE__ */ jsxRuntimeExports.jsx(Aura, { gold: true, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(Aura, { className: "block h-full w-full rounded-xl text-brand", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "article",
     {
       "data-ocid": "video_card",
-      className: "group flex flex-col rounded-box border border-border bg-card transition-smooth hover:shadow-elevated",
+      className: "group flex h-full flex-col rounded-xl border border-border bg-card transition-smooth hover:shadow-elevated",
       children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs(
           Link,
@@ -44068,7 +44080,7 @@ function VideoCard({
             params: { videoId: video.id.toString() },
             "data-ocid": "video_thumbnail_link",
             "aria-label": `Watch ${video.title}`,
-            className: "relative block aspect-video overflow-hidden rounded-t-box bg-muted",
+            className: "relative block aspect-video overflow-hidden rounded-t-xl bg-muted",
             children: [
               thumbnailUrl ? /* @__PURE__ */ jsxRuntimeExports.jsx(
                 "img",
