@@ -1,5 +1,5 @@
 import { RequireAuth } from "@/components/auth/RequireAuth";
-import { MainLayout } from "@/layouts/MainLayout";
+import { MainLayout } from "@/components/ui/layouts/MainLayout";
 import { ChannelPage } from "@/pages/ChannelPage";
 import { FeedPage } from "@/pages/FeedPage";
 import { ProfilePage } from "@/pages/ProfilePage";
